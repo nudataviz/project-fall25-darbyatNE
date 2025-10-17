@@ -28,6 +28,47 @@ The initial sample dataset used for this preliminary analysis is over 60 MB. As 
 
 This scale exceeds the limits of Github storage and transferability at least at the free tier we are enrolled in (e.g., a `.db` file). To ensure the system remains performant, scalable, and accessible for the full scope of the analysis, a critical next step is to **migrate the data pipeline and storage from the current local file to a dedicated database server**. This will allow us t expand the number and type of featurees we can explore and  support more complex, large-scale SQL queries that the project will require to produce meaningful results.
 
+### Reproducibility
+
+Follow these instructions to clone the repository and run the application on your local machine.
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+- [Git](https://git-scm.com/)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html) (or Miniconda)
+
+### Installation and Setup
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/nudataviz/project-fall25-darbyatNE
+    cd project-fall25-darbyatNE/hello-lmp
+    ```
+
+2.  **Create and activate the Conda environment**
+    The `framework.yml` file contains all necessary dependencies including Node.js, Yarn, and Python packages.
+    ```bash
+    conda env create -f framework.yml
+    conda activate framework
+    ```
+
+3.  **Install JavaScript dependencies**
+    Yarn will read the configuration from `.yarnrc.yml` and install dependencies to the `node_modules` directory.
+    ```bash
+    yarn install
+    ```
+
+4.  **Run the development server**
+    ```bash
+    yarn dev
+    ```
+
+5.  **View the application**
+    Open your web browser and navigate to:
+    ```
+    http://localhost:3000
+    ```
 
 ## Challenges
 The two largest technical challenges are as follows: 

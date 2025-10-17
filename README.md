@@ -25,14 +25,9 @@ This project's primary objective is to develop a visual analytical interface for
 ### Reproducibility
 ## Preview
 
-<img src=".//src/img/zone_map.png" width="600" alt="PJM Zone Map">
+<img src="./hello_lmp/src/img/zone_map.png" width="600" alt="PJM Zone Map">
 
-<img src=".//src/img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
-
-## Challenges
-The two largest technical challenges are as follows: 
- * Parsing the text values assigned to datetime_beginning_ept into values that can be compared numerically in selecting a date range. JavaScript's built-in Date object made quick work of turning text into comparable values. This was easy enough to do for dates themselves, but the next version of this graphic will be more granular in its measurement of time intervals, in that our plan is to represent this pricing data on an hourly basis, possibly with more interactive components such as a slider.
- * Adjusting the formatting for such dense data representations was required so that data labels weren't overlapping, but this was accomplished using lambda expressions for the `title` attribute, setting margins for the overall plot, adding an angle to the ordinal group labels along the x axis, and adding an inset to the bars themselves to keep them apart.
+<img src="./hello_lmp/src/img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
 
 ## Getting Started
 
@@ -49,7 +44,7 @@ Before you begin, ensure you have the following installed on your system:
 1.  **Clone the repository**
     ```bash
     git clone https://github.com/nudataviz/project-fall25-darbyatNE
-    cd project-fall25-darbyatNE/hello-framework
+    cd project-fall25-darbyatNE/hello-lmp
     ```
 
 2.  **Create and activate the Conda environment**

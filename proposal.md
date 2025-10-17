@@ -4,7 +4,7 @@
 
 ### Title: AI Boom
 
-**Story:**  We are investigating whether the massive capital investments flowing into AI companies are generating sustainable returns or fueling a speculative bubble. Using compelling 2D and 3D visualizations built with Observable, MapLibre, and possibly other platforms, we will illustrate the implications for developers and the broader economy through dynamic, interactive data storytelling.
+**Story:**  This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify historical analogs by analyzing a set of predictive features related to market prices. A critical constraint is that these features must be known prior to market clearing. The resulting insights will enable users to better forecast zonal Locational Marginal Prices (LMPs) and anticipate price separation between zones, thereby improving risk management and optimizing bidding strategies.
 
 ---
 

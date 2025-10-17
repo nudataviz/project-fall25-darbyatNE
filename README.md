@@ -29,6 +29,11 @@ This project's primary objective is to develop a visual analytical interface for
 
 <img src=".//src/img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
 
+## Challenges
+The two largest technical challenges are as follows: 
+ * Parsing the text values assigned to datetime_beginning_ept into values that can be compared numerically in selecting a date range. JavaScript's built-in Date object made quick work of turning text into comparable values. This was easy enough to do for dates themselves, but the next version of this graphic will be more granular in its measurement of time intervals, in that our plan is to represent this pricing data on an hourly basis, possibly with more interactive components such as a slider.
+ * Adjusting the formatting for such dense data representations was required so that data labels weren't overlapping, but this was accomplished using lambda expressions for the `title` attribute, setting margins for the overall plot, adding an angle to the ordinal group labels along the x axis, and adding an inset to the bars themselves to keep them apart.
+
 ## Getting Started
 
 Follow these instructions to clone the repository and run the application on your local machine.

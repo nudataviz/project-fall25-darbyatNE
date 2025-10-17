@@ -1,4 +1,4 @@
-# EDA for `"It's Electric`" a PJM Electricity Price Forecasting Project
+# EDA for `"It's Electric"` a PJM Electricity Price Forecasting Project
 
 ## Description of Preliminary Results
 

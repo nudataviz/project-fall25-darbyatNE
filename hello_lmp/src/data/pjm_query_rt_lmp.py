@@ -20,8 +20,8 @@ PJM_API_KEY = os.getenv("PJM_API_KEY")
 PJM_API_ENDPOINT = 'https://api.pjm.com/api/v1/rt_hrl_lmps'
 DB_TABLE_NAME = 'pjm_rt_hrl_lmps'
 
-START_DATE = date(2024, 1, 1)
-END_DATE = date(2024, 12, 31)
+START_DATE = date(2025, 1, 1)
+END_DATE = date(2025, 10, 29)
 PNODE_IDS = [
     51217, 51288, 4669664, 5413134, 31252687, 33092311, 33092313,
     33092315, 34497125, 34497127, 34497151, 35010337, 40523629,
@@ -100,11 +100,12 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
                     item.get('pnode_id'),
                     item.get('pnode_name'),
                     item.get('type'),
-                    item.get('system_energy_price'),
-                    item.get('total_lmp'),
-                    item.get('congestion_price'),
-                    item.get('loss_price') # API key is 'loss_price' for 'marginal_loss_price_rt'
+                    item.get('system_energy_price_rt'),
+                    item.get('total_lmp_rt'),
+                    item.get('congestion_price_rt'),
+                    item.get('marginal_loss_price_rt') 
                 ))
+
 
             if not rows_to_upsert:
                 continue

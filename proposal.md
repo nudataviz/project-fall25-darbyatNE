@@ -27,7 +27,7 @@
 
 ## Data Sources and Features
 
-The analytical framework will be constructed using a curated set of publicly available time-series and geospatial data. A core principle of feature selection is the requirement that all predictive data must be available prior to market clearing, mirroring the real-world decision-making environment.
+We're building our tool using free public data, like hourly electricity usage and maps of the power grid.
 
 The primary data sources are categorized as follows:
 

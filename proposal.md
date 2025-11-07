@@ -31,7 +31,7 @@ The primary data sources are categorized as follows:
 
 *   **System Operations Data:** PJM-published data, including day-ahead load forecasts and scheduled generation and transmission outages, will be critical inputs. This data provides direct insight into anticipated system stress and resource availability.
 
-*   **Meteorological Data:** Weather forecasts (e.g., temperature, wind speed, cloud cover) from sources such as the *National Oceanic and Atmospheric Administration (NOAA)* will be integrated to model their impact on electricity demand and renewable energy output.
+*   **Weather Data:** Weather forecasts (e.g., temperature, wind speed, cloud cover) from sources such as the *National Oceanic and Atmospheric Administration (NOAA)* will be integrated to model their impact on electricity demand and renewable energy output.
 
 *   **Geospatial Data:** The geometric boundaries of PJM zones, provided in `WKT` format, will be used to map and analyze price separation and congestion patterns between specific zonal pairs.
 

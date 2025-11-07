@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PJM LMP Real-Time Map</title>
+    
+    <!-- Leaflet-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <style>
+        html, body, #map {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #map-container {
+            height: 90vh;
+            width: 100%;
+        }
+        #controls-container {
+            height: 10vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            border-top: 1px solid #ccc;
+        }
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+        #hour-slider {
+            width: 50%;
+            margin: 0 20px;
+        }
+        #play-pause-button, #current-time-display {
+            font-size: 16px;
+        }
+        #current-time-display {
+            font-weight: bold;
+            min-width: 420px; 
+            text-align: center;
+        }
+        .zone-label {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            pointer-events: none;
+        }
+        .legend h4 {
+            margin-top: 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .legend-item i {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            opacity: 0.8;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+    
+    <div id="controls-container">
+        <button id="play-pause-button">▶ Play</button>
+        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+        <div id="current-time-display">Loading date and time...</div>
+    </div>
+
+<script>
+    // Map
+    const map = L.map('map').setView([39.8283, -98.5795], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // GLOBALS 
+    let geojsonLayer;
+    let timeSeriesData = [];    // returned data points, sorted by time
+    let labelMarkers = {};
+    let currentTimeIndex = 0;   // current position in timeSeriesData array
+    let animationTimer = null;
+
+    // GUI stuff
+    const slider = document.getElementById('hour-slider');
+    const playPauseButton = document.getElementById('play-pause-button');
+    const timeDisplay = document.getElementById('current-time-display');
+
+
+    async function fetchZoneShapes() {
+        try {
+            const response = await fetch('/api/zones');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const geojsonData = await response.json();
+            geojsonLayer = L.geoJson(geojsonData, { style: style, onEachFeature: onEachFeature }).addTo(map);
+            map.fitBounds(geojsonLayer.getBounds());
+        } catch (error) {
+            console.error("Error fetching zone shapes:", error);
+            alert("Could not load zone shapes. The map will not be drawn.");
+        }
+    }
+
+    async function fetchLmpData() {
+        timeDisplay.innerText = "Loading LMP data...";
+        try {
+            // Query params
+            const queryPayload = {
+              "start_day": "2025-07-01",
+              "end_day": "2025-07-14",
+              "days_of_week": [1, 7],
+              "hours": [true, true, true, true, true, true, true, false, 
+                        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+            };
+            
+            const response = await fetch('/api/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(queryPayload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+            
+            const lmpDataByZone = await response.json();
+            processLmpData(lmpDataByZone);
+
+            if (timeSeriesData.length === 0) {
+                timeDisplay.innerText = "No data returned for the selected query.";
+                return;
+            }
+
+            slider.max = timeSeriesData.length - 1;      
+            updateMapForTimeIndex(0); 
+
+        } catch (error) {
+            console.error("Error fetching LMP data:", error);
+            timeDisplay.innerText = "Failed to load data.";
+            alert("Could not load LMP data. The map will not be colored.");
+        }
+    }
+
+    function processLmpData(lmpDataByZone) {
+        const dataByTimestamp = {};
+
+        for (const zoneName in lmpDataByZone) {
+            for (const reading of lmpDataByZone[zoneName]) {
+                const timestamp = reading.datetime_beginning_ept;
+                if (!dataByTimestamp[timestamp]) {
+                    dataByTimestamp[timestamp] = {
+                        datetime: timestamp,
+                        readings: {}
+                    };
+                }
+                dataByTimestamp[timestamp].readings[zoneName] = reading.total_lmp_rt;
+            }
+        }
+
+        timeSeriesData = Object.values(dataByTimestamp).sort((a, b) => {
+            return new Date(a.datetime) - new Date(b.datetime);
+        });
+    }
+
+    // lmp price ranges on map
+    function getColor(lmp) {
+        if (lmp === undefined || lmp === null) return '#808080'; 
+        if (lmp > 100)  return '#9e0142'; 
+        if (lmp > 75)   return '#d53e4f'; 
+        if (lmp > 62)   return '#f46d43'; 
+        if (lmp > 52)   return '#fdae61'; 
+        if (lmp > 44)   return '#fee08b'; 
+        if (lmp > 37)   return '#ffffbf'; 
+        if (lmp > 30)   return '#e6f598'; 
+        if (lmp > 25)   return '#abdda4'; 
+        if (lmp > 20)   return '#66c2a5'; 
+        if (lmp >= 0)   return '#3288bd'; 
+        return '#5e4fa2';                 
+    }
+    function style(feature) {
+        const zoneName = feature.properties.zone_name;
+        const currentReadings = timeSeriesData[currentTimeIndex]?.readings;
+        const lmp = currentReadings ? currentReadings[zoneName] : null;
+        return { fillColor: getColor(lmp), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
+    }
+    function highlightFeature(e) {
+        const layer = e.target;
+        layer.setStyle({ weight: 5, color: '#666', dashArray: '', fillOpacity: 0.7 });
+        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) layer.bringToFront();
+    }
+    function resetHighlight(e) { geojsonLayer.resetStyle(e.target); }
+    function onEachFeature(feature, layer) {
+        layer.on({ mouseover: highlightFeature, mouseout: resetHighlight });
+        const zoneName = feature.properties.zone_name;
+        layer.bindPopup(`<strong>${zoneName || "Unknown Zone"}</strong>`);
+        if (zoneName) {
+            const center = layer.getBounds().getCenter();
+            const label = L.marker(center, {
+                icon: L.divIcon({ className: 'zone-label', html: '', iconSize: [80, 20] }),
+                interactive: false
+            }).addTo(map);
+            labelMarkers[zoneName] = label;
+        }
+    }
+
+    function updatePopupsForTimeIndex(index) {
+        const lmpDataForTime = timeSeriesData[index]?.readings;
+        if (!lmpDataForTime || !geojsonLayer) return;
+
+        geojsonLayer.eachLayer(function(layer) {
+            const zoneName = layer.feature.properties.zone_name;
+            const lmp = lmpDataForTime[zoneName];
+            const content = `<strong>${zoneName}</strong><br>LMP: ${lmp !== undefined ? `$${lmp.toFixed(2)}` : 'No data'}`;
+            layer.setPopupContent(content);
+        });
+    }
+    function updateLabelsForTimeIndex(index) {
+        const lmpDataForTime = timeSeriesData[index]?.readings;
+        if (!lmpDataForTime) return;
+
+        for (const zoneName in labelMarkers) {
+            const marker = labelMarkers[zoneName];
+            const lmp = lmpDataForTime[zoneName];
+            let labelText = (lmp !== null && lmp !== undefined) ? `$${lmp.toFixed(1)}` : '';
+            marker.getIcon().options.html = labelText;
+            marker.setIcon(marker.getIcon());
+        }
+    }
+
+    function updateMapForTimeIndex(index) {
+        currentTimeIndex = parseInt(index);
+        slider.value = currentTimeIndex;
+
+        const currentDataPoint = timeSeriesData[currentTimeIndex];
+        if (!currentDataPoint) return;
+
+        const currentDate = new Date(currentDataPoint.datetime);
+        const currentHour = currentDate.getHours();
+        const nextHour = (currentHour + 1) % 24;
+
+        const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateString = currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const hourString = `Hour: ${String(currentHour).padStart(2, '0')}:00 - ${String(nextHour).padStart(2, '0')}:00`;
+
+        timeDisplay.innerText = `${dayOfWeek}, ${dateString} | ${hourString}`;
+
+        if (geojsonLayer) {
+            geojsonLayer.setStyle(style);
+            updatePopupsForTimeIndex(currentTimeIndex);
+            updateLabelsForTimeIndex(currentTimeIndex);
+        }
+    }
+
+    function playAnimation() {
+        playPauseButton.innerText = '❚❚ Pause';
+        playPauseButton.onclick = pauseAnimation;
+        animationTimer = setInterval(() => {
+            let nextIndex = currentTimeIndex + 1;
+            if (nextIndex >= timeSeriesData.length) {
+                pauseAnimation();
+                return;
+            }
+            updateMapForTimeIndex(nextIndex);
+        }, 1000);
+    }
+    function pauseAnimation() {
+        clearInterval(animationTimer);
+        animationTimer = null;
+        playPauseButton.innerText = '▶ Play';
+        playPauseButton.onclick = playAnimation;
+    }
+
+    slider.addEventListener('input', (e) => {
+        if (animationTimer) pauseAnimation();
+        updateMapForTimeIndex(e.target.value);
+    });
+    playPauseButton.onclick = playAnimation;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const legend = L.control({position: 'topright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML += '<h4>LMP ($/MWh)</h4>';
+            div.innerHTML += `<div class="legend-item"><i style="background:#9e0142"></i><span>> $100</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#d53e4f"></i><span>$75.01 &ndash; $100</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#f46d43"></i><span>$62.01 &ndash; $75</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#fdae61"></i><span>$52.01 &ndash; $62</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#fee08b"></i><span>$44.01 &ndash; $52</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#ffffbf"></i><span>$37.01 &ndash; $44</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#e6f598"></i><span>$30.01 &ndash; $37</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#abdda4"></i><span>$25.01 &ndash; $30</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#66c2a5"></i><span>$20.01 &ndash; $25</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#3288bd"></i><span>$0 &ndash; $20</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#5e4fa2"></i><span>< $0</span></div>`;
+            div.innerHTML += `<div class="legend-item"><i style="background:#808080"></i><span>No Data</span></div>`;
+            return div;
+        };
+        legend.addTo(map);
+        
+        fetchZoneShapes().then(() => {
+            fetchLmpData(); 
+        });
+    });
+
+</script>
+
+</body>
+</html>

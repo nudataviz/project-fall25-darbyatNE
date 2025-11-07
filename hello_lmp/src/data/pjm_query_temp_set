@@ -3,7 +3,6 @@ import requests
 import mysql.connector
 from mysql.connector import Error
 from datetime import date, timedelta, datetime
-import argparse
 import time
 from dotenv import load_dotenv
 
@@ -18,7 +17,7 @@ DB_CONFIG = {
 }
 PJM_API_KEY = os.getenv("PJM_API_KEY")
 
-API_CHUNK_SIZE_DAYS = 6  
+API_CHUNK_SIZE_DAYS = 200
 
 def get_date_chunks(start_date, end_date, chunk_size_days):
     """Splits a date range into smaller chunks of a specified size."""
@@ -32,7 +31,7 @@ def get_date_chunks(start_date, end_date, chunk_size_days):
         current_start = current_end + timedelta(days=1)
     return chunks
 
-def fetch_pjm_inst_load(api_key, start_date, end_date):
+def fetch_pjm_temp_set(api_key, start_date, end_date):
     """Fetches instantaneous load data from the PJM API for a specific date range."""
     print(f"Fetching data from PJM for {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}...")
 
@@ -40,7 +39,7 @@ def fetch_pjm_inst_load(api_key, start_date, end_date):
         print("Error: PJM_API_KEY is not set. Please check your .env file.")
         return None
 
-    api_url = "https://api.pjm.com/api/v1/inst_load"
+    api_url = "https://api.pjm.com/api/v1/da_tempset"
     start_datetime = f"{start_date.strftime('%Y-%m-%d')}T00:00:00"
     end_datetime = f"{end_date.strftime('%Y-%m-%d')}T23:59:59"
 
@@ -77,8 +76,11 @@ def fetch_pjm_inst_load(api_key, start_date, end_date):
         print(f"Response Text: {response.text[:500]}")
         return None
 
-def insert_load_data(db_params, pjm_data):
-    """Inserts or updates PJM load data into the MySQL database."""
+def insert_temp_set_data(db_params, pjm_data):
+    """
+    Inserts or updates PJM temperature set data into the MySQL database.
+    It also parses the 'da_temperature_set' string to store it as an integer.
+    """
     if not pjm_data:
         print("No valid PJM data to insert.")
         return
@@ -92,17 +94,33 @@ def insert_load_data(db_params, pjm_data):
             cursor = conn.cursor()
 
             sql = """
-                INSERT INTO inst_load (datetime_beginning_ept, area, instantaneous_load)
-                VALUES (%s, %s, %s)
+                INSERT INTO da_temperature_sets (
+                    datetime_beginning_ept, datetime_ending_ept, zone, da_temperature_set
+                )
+                VALUES (%s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
-                    instantaneous_load = VALUES(instantaneous_load);
+                    datetime_ending_ept = VALUES(datetime_ending_ept),
+                    da_temperature_set = VALUES(da_temperature_set);
             """
+
+            data_to_insert = []
+            for item in pjm_data:
+                try:
+                    temp_set_value = int(item['da_temperature_set'].split('-')[0])
+                    
+                    data_to_insert.append((
+                        item['datetime_beginning_ept'],
+                        item['datetime_ending_ept'],
+                        item['zone'],
+                        temp_set_value
+                    ))
+                except (ValueError, IndexError) as e:
+                    print(f"Could not parse '{item['da_temperature_set']}'. Skipping item. Error: {e}")
             
-            data_to_insert = [
-                (item['datetime_beginning_ept'], item['area'], item['instantaneous_load'])
-                for item in pjm_data
-            ]
-            
+            if not data_to_insert:
+                print("No data to insert after parsing.")
+                return
+
             print(f"Upserting {len(data_to_insert)} rows...")
             cursor.executemany(sql, data_to_insert)
             conn.commit()
@@ -116,46 +134,19 @@ def insert_load_data(db_params, pjm_data):
             conn.close()
             print("Database connection closed.")
 
+
 def main():
-    """Main function to parse arguments and run the data pipeline."""
-    
-    parser = argparse.ArgumentParser(description="Fetch PJM instantaneous load data and store it in a database.")
-    
-    parser.add_argument(
-        '--start_date',
-        help="The start date for the data fetch in YYYY-MM-DD format.",
-        required=True
-    )
-    
-    parser.add_argument(
-        '--end_date',
-        help="The end date for the data fetch in YYYY-MM-DD format.",
-        required=True
-    )
-    
-    args = parser.parse_args()
+    """Main function to run the data pipeline."""
 
-    try:
-        start_date = datetime.strptime(args.start_date, '%Y-%m-%d').date()
-        end_date = datetime.strptime(args.end_date, '%Y-%m-%d').date()
-    except ValueError:
-        print("Error: The start_date and end_date must be in YYYY-MM-DD format.")
-        return
-
-    if start_date > end_date:
-        print("Error: The start_date cannot be after the end_date.")
-        return
-
-    print(f"--- Script Starting for date range: {start_date} to {end_date} ---")
-    
+    start_date = date(2025, 1, 1)
+    end_date = date(2025, 10, 31)    
     date_chunks = get_date_chunks(start_date, end_date, API_CHUNK_SIZE_DAYS)
     
     for i, (chunk_start, chunk_end) in enumerate(date_chunks):
         print(f"\n--- Processing chunk {i+1}/{len(date_chunks)}: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')} ---")
-        pjm_data = fetch_pjm_inst_load(PJM_API_KEY, chunk_start, chunk_end)
-        
+        pjm_data = fetch_pjm_temp_set(PJM_API_KEY, chunk_start, chunk_end)
         if pjm_data:
-            insert_load_data(DB_CONFIG, pjm_data)
+            insert_temp_set_data(DB_CONFIG, pjm_data)
         else:
             print(f"No data received from PJM for this chunk.")
         

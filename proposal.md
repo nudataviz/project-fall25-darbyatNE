@@ -1,6 +1,6 @@
 # CS7250 Project Proposal: 
 
-### Title: Using Past Data to Predict Future Energy Prices
+### Title: Visualizing Historical Electricity Prices to Gain Market Insights
 
 **Story:**  Allows users to visualize targeted market price data by zone to make price forecasts and get immediate answers to business questions like:
 

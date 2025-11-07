@@ -1,10 +1,14 @@
 # CS7250 Project Proposal: 
 
-## Project Pitch
+### Title: Using Past Data to Predict Future Energy Prices
 
-### Title: AI Boom
+**Story:**  Allows users to visualize targeted market price data by zone to make price forecasts and get immediate answers to business questions like:
 
-**Story:**  This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify historical analogs by analyzing a set of predictive features related to market prices. A critical constraint is that these features must be known prior to market clearing. The resulting insights will enable users to better forecast zonal Locational Marginal Prices (LMPs) and anticipate price separation between zones, thereby improving risk management and optimizing bidding strategies.
+"What was our real-time price exposure during peak hours last month?"
+"Are we consistently seeing price spikes on weekday mornings?"
+"How did the Day-Ahead forecast compare to reality during the recent heatwave?"
+
+
 
 ---
 

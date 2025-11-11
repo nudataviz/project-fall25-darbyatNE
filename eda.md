@@ -67,7 +67,7 @@ Before you begin, ensure you have the following installed on your system:
 5.  **View the application**
     Open your web browser and navigate to:
     ```
-    http://localhost:3000
+    http://localhost:8000
     ```
 
 ## Challenges

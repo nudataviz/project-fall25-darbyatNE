@@ -1,10 +1,14 @@
 # CS7250 Project Proposal: 
 
-## Project Pitch
+### Title: Visualizing Historical Electricity Prices to Gain Market Insights
 
-### Title: AI Boom
+**Story:**  Allows users to visualize targeted market price data by zone to make price forecasts and get immediate answers to business questions like:
 
-**Story:**  This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify historical analogs by analyzing a set of predictive features related to market prices. A critical constraint is that these features must be known prior to market clearing. The resulting insights will enable users to better forecast zonal Locational Marginal Prices (LMPs) and anticipate price separation between zones, thereby improving risk management and optimizing bidding strategies.
+"What was our real-time price exposure during peak hours last month?"<br>
+"Are we consistently seeing price spikes on weekday mornings?"<br>
+"How did the Day-Ahead forecast compare to reality during the recent heatwave?"
+
+
 
 ---
 
@@ -23,7 +27,7 @@
 
 ## Data Sources and Features
 
-The analytical framework will be constructed using a curated set of publicly available time-series and geospatial data. A core principle of feature selection is the requirement that all predictive data must be available prior to market clearing, mirroring the real-world decision-making environment.
+We're building our tool using free public data, like hourly electricity usage and maps of the power grid.
 
 The primary data sources are categorized as follows:
 
@@ -31,7 +35,7 @@ The primary data sources are categorized as follows:
 
 *   **System Operations Data:** PJM-published data, including day-ahead load forecasts and scheduled generation and transmission outages, will be critical inputs. This data provides direct insight into anticipated system stress and resource availability.
 
-*   **Meteorological Data:** Weather forecasts (e.g., temperature, wind speed, cloud cover) from sources such as the *National Oceanic and Atmospheric Administration (NOAA)* will be integrated to model their impact on electricity demand and renewable energy output.
+*   **Weather Data:** Weather forecasts (e.g., temperature, wind speed, cloud cover) from sources such as the *National Oceanic and Atmospheric Administration (NOAA)* will be integrated to model their impact on electricity demand and renewable energy output.
 
 *   **Geospatial Data:** The geometric boundaries of PJM zones, provided in `WKT` format, will be used to map and analyze price separation and congestion patterns between specific zonal pairs.
 

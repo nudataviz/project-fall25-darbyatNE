@@ -29,9 +29,9 @@ This project's primary objective is to develop a visual analytical interface for
 
 ## Preview
 
-<img src="./hello_lmp/src/img/zone_map.png" width="600" alt="PJM Zone Map">
+<img src="img/zone_map.png" width="600" alt="PJM Zone Map">
 
-<img src="./hello_lmp/src/img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
+<img src="img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
 
 ## Getting Started
 

@@ -67,10 +67,10 @@ Before you begin, ensure you have the following installed on your system:
     ```
 
 4.  **Create and Activate the Conda Environment**
-    The `framework.yml` file contains all necessary Python dependencies.
+    The `lmp_env.yml` file contains all necessary Python dependencies.
     ```bash
-    conda env create -f framework.yml
-    conda activate framework
+    conda env create -f lmp_env.yml
+    conda activate fework
     ```
 
 ### Running the Application

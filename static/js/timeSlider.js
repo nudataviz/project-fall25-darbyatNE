@@ -20,7 +20,7 @@ const TimeSlider = {
             .domain([0, 24])
             .range([0, innerWidth]);
 
-        // Axis
+        // Axis - show every 2 hours for readability (slider still snaps to 1 hour)
         const axis = d3.axisBottom(timeScale)
             .ticks(12)
             .tickFormat(d => `${d}:00`);
@@ -85,7 +85,10 @@ const TimeSlider = {
             .on("drag", function(event, d) {
                 const isStart = d === 'start';
                 const x = Math.max(0, Math.min(innerWidth, event.x));
-                const newTime = timeScale.invert(x);
+                const rawTime = timeScale.invert(x);
+                
+                // Round to nearest hour (1-hour steps)
+                const newTime = Math.round(rawTime);
                 
                 if (isStart && newTime < State.currentFilter.endTime) {
                     State.currentFilter.startTime = newTime;
@@ -104,9 +107,8 @@ const TimeSlider = {
 
     updateTimeDisplay() {
         const formatTime = (hours) => {
-            const h = Math.floor(hours);
-            const m = Math.round((hours - h) * 60);
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            // Since we now snap to whole hours, just format as HH:00
+            return `${String(Math.round(hours)).padStart(2, '0')}:00`;
         };
         
         document.getElementById('time-display').textContent = 

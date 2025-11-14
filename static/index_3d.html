@@ -108,7 +108,7 @@
                 'type': 'fill-extrusion',
                 'source': 'zones',
                 'paint': {
-                    // This color logic remains the same and already handles negative prices visually
+
                     'fill-extrusion-color': [
                         'interpolate',
                         ['linear'],
@@ -122,12 +122,12 @@
                         100, '#9e0142'
                     ],
 
-                    // --- NEW HEIGHT & BASE LOGIC FOR NEGATIVE PRICES ---
+                    // --- ALLOWS NEGATIVE PRICES by setting a lofted base height---
                     'fill-extrusion-height': [
                         'case',
                         // Condition: If LMP is less than 0...
                         ['<', ['coalesce', ['get', 'lmp_value'], 0], 0],
-                        10000, // ...then the top of the shape is fixed at the 10,000m zero plane.
+                        10000, // ...the shape is fixed at the 10,000m zero plane.
 
                         // Default (for prices >= 0):
                         [ // The height is the zero plane PLUS the scaled price.
@@ -140,8 +140,7 @@
                         'case',
                         // Condition: If LMP is less than 0...
                         ['<', ['coalesce', ['get', 'lmp_value'], 0], 0],
-                        // ...the base is PULLED DOWN from the zero plane, creating a pit.
-                        // We use 'max' to ensure the base doesn't go below the actual ground (0m).
+                        // 'max' ensures the base doesn't go below the actual ground (0m).
                         [
                             'max',
                             0,
@@ -149,7 +148,7 @@
                         ],
 
                         // Default (for prices >= 0):
-                        10000 // The base is fixed at the 10,000m zero plane.
+                        10000
                     ],
                     // ----------------------------------------------------
 

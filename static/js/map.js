@@ -6,6 +6,11 @@ const MapUtils = {
             maxZoom: CONFIG.MAP.maxZoom,
             attribution: CONFIG.MAP.attribution
         }).addTo(State.map);
+        
+        // Force map to recalculate its size after a brief delay
+        setTimeout(() => {
+            State.map.invalidateSize();
+        }, 100);
     },
 
     getColor(lmp) {

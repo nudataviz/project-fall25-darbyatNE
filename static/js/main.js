@@ -1,8 +1,9 @@
-// Main application initialization
+// Create map immediately at top level (like working version)
+// This runs as soon as the script loads
+MapUtils.initializeMap();
+
+// Main application initialization for UI components and data loading
 function initializeApp() {
-    // Initialize map
-    MapUtils.initializeMap();
-    
     // Add legend
     MapUtils.createLegend();
     
@@ -15,17 +16,13 @@ function initializeApp() {
     API.fetchZoneShapes().then(() => {
         API.fetchLmpData();
     });
+
+    
 }
 
-// Wait for Leaflet and DOM to be ready
-if (typeof L !== 'undefined') {
-    // Leaflet already loaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    } else {
-        initializeApp();
-    }
-} else {
-    // Wait for window load to ensure all external scripts are loaded
-    window.addEventListener('load', initializeApp);
-}
+// Wait for DOM to be ready before initializing UI components
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+window.addEventListener("load", () => {
+    map.invalidateSize(); 
+});

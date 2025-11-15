@@ -13,7 +13,12 @@ const API = {
                 onEachFeature: MapUtils.onEachFeature
             }).addTo(State.map);
             
-            State.map.fitBounds(State.geojsonLayer.getBounds());
+            // Fit map to zone bounds
+            if (State.geojsonLayer && State.geojsonLayer.getBounds().isValid()) {
+                State.map.fitBounds(State.geojsonLayer.getBounds(), {
+                    padding: [20, 20]
+                });
+            }
         } catch (error) {
             console.error("Error fetching zone shapes:", error);
             alert("Could not load zone shapes. The map will not be drawn.");

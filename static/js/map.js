@@ -31,10 +31,10 @@ const MapUtils = {
         
         return {
             fillColor: MapUtils.getColor(lmp),
-            weight: 2,
+            weight: 3,
             opacity: 1,
             color: 'white',
-            dashArray: '3',
+            dashArray: '1',
             fillOpacity: 0.7
         };
     },

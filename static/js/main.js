@@ -1,28 +1,6 @@
 // In /static/js/main.js
 
 // =================================================================================
-// GLOBAL STATE AND CONFIGURATION
-// =================================================================================
-
-// This is the single source of truth for the application's state.
-const State = {
-    map: null,
-    geojsonLayer: null,
-    labelMarkers: {},
-    timeSeriesData: [],
-    currentTimeIndex: 0,
-    savedFilters: [],
-    // **CRITICAL FIX**: Initialize currentFilter with default values.
-    currentFilter: {
-        startDate: new Date('2023-01-01'), // Example default start date
-        endDate: new Date('2023-01-07'),   // Example default end date
-        startTime: 0,
-        endTime: 23.75,
-        daysOfWeek: [true, true, true, true, true, true, true] // All days selected by default
-    }
-};
-
-// =================================================================================
 // APPLICATION INITIALIZATION
 // =================================================================================
 

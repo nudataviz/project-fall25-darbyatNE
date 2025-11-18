@@ -90,4 +90,3 @@ const CONFIG = {
         daysOfWeek: [false, true, true, true, true, true, false]
     }
 };
-

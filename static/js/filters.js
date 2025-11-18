@@ -1,7 +1,6 @@
 // In /static/js/filters.js
 
 const Filters = {
-    // **NEW FUNCTION**: Add this function to sync the UI with the state.
     updateFormFromState() {
         const filter = State.currentFilter;
 
@@ -20,16 +19,14 @@ const Filters = {
             }
         });
 
-        // Note: Time slider is handled by TimeSlider.init(), so we don't touch it here.
+        // Note: Time slider is handled by TimeSlider.init()
     },
 
     init() {
-        // **ADD THIS LINE**: Call the new function at the start of init.
         this.updateFormFromState();
 
         // Filter panel toggle
         const filterPanel = document.getElementById('filter-panel');
-        // ... (the rest of your init function is unchanged) ...
         const filterToggle = document.getElementById('filter-toggle');
         const closeFilter = document.getElementById('close-filter');
 
@@ -67,7 +64,6 @@ const Filters = {
         // Apply filter button
         document.getElementById('apply-filter').addEventListener('click', () => {
             filterPanel.classList.remove('open');
-            // **MODIFICATION**: Pass the current filter state to the API call.
             API.fetchLmpData(State.currentFilter);
         });
 
@@ -77,17 +73,85 @@ const Filters = {
         });
     },
 
-    // ... (rest of your filters.js file is unchanged) ...
     saveFilter() {
-        // ...
+        const filter = {
+            id: Date.now(),
+            startDate: new Date(State.currentFilter.startDate),
+            endDate: new Date(State.currentFilter.endDate),
+            startTime: State.currentFilter.startTime,
+            endTime: State.currentFilter.endTime,
+            daysOfWeek: [...State.currentFilter.daysOfWeek],
+            savedAt: new Date()
+        };
+        
+        State.savedFilters.push(filter);
+        this.updateSavedFiltersList();
     },
+
     updateSavedFiltersList() {
-        // ...
+        const container = document.getElementById('saved-filters-list');
+        
+        if (State.savedFilters.length === 0) {
+            container.innerHTML = '<div style="color: #666; font-style: italic; font-size: 12px;">No saved filters yet</div>';
+            return;
+        }
+
+        const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        
+        container.innerHTML = State.savedFilters.map((filter, index) => {
+            const selectedDays = dayLabels.filter((_, i) => filter.daysOfWeek[i]).join(", ");
+            const formatTime = (hours) => {
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            };
+            
+            return `
+                <div class="saved-filter-item">
+                    <div class="saved-filter-header">Filter #${State.savedFilters.length - index}</div>
+                    <div class="saved-filter-details">
+                        📅 ${filter.startDate.toLocaleDateString()} — ${filter.endDate.toLocaleDateString()}<br>
+                        ⏰ ${formatTime(filter.startTime)} — ${formatTime(filter.endTime)}<br>
+                        📆 ${selectedDays}
+                    </div>
+                    <div class="saved-filter-buttons">
+                        <button class="load-btn" onclick="Filters.loadFilter(${index})">Load</button>
+                        <button class="delete-btn" onclick="Filters.deleteFilter(${index})">Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
     },
+
     loadFilter(index) {
-        // ...
+        const filter = State.savedFilters[index];
+        State.currentFilter = {
+            startDate: new Date(filter.startDate),
+            endDate: new Date(filter.endDate),
+            startTime: filter.startTime,
+            endTime: filter.endTime,
+            daysOfWeek: [...filter.daysOfWeek]
+        };
+
+        // Update UI
+        document.getElementById('start-date').value = filter.startDate.toISOString().split('T')[0];
+        document.getElementById('end-date').value = filter.endDate.toISOString().split('T')[0];
+        
+        const dayButtons = document.querySelectorAll('.day-button');
+        dayButtons.forEach((button) => {
+            const dayIndex = parseInt(button.dataset.day);
+            if (State.currentFilter.daysOfWeek[dayIndex]) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+
+        TimeSlider.init();
     },
+
     deleteFilter(index) {
-        // ...
+        State.savedFilters.splice(index, 1);
+        this.updateSavedFiltersList();
     }
 };

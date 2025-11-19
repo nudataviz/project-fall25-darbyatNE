@@ -4,6 +4,7 @@ const State = {
     map: null,
     geojsonLayer: null,
     timeSeriesData: [],
+    labelMarkers: {},
     currentTimeIndex: 0,
     animationTimer: null,
     isAnimationStarted: false,

@@ -107,14 +107,33 @@ html, body {
 }
 
 .zone-label {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 14px;
+    /* Visual Appearance */
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid #999;
+    border-radius: 4px;
+    /* MODIFIED: Reduced horizontal padding to make the box narrower */
+    padding: 2px 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+
+    /* Text Styling */
+    color: #333;
+    font-size: 13px;
     font-weight: bold;
     text-align: center;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    pointer-events: none;
+    white-space: nowrap;
+
+    /* Centering Correction (Important!) */
+    /* This is tied to the iconSize: [80, 20] in map.js */
+    margin-left: -35px; /* Negative half of iconSize width */
+    margin-top: -10px;  /* Negative half of iconSize height */
+}
+
+.zone-label span {
+    /* Prevents the text itself from being selected on double-click */
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 .legend {

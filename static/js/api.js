@@ -25,9 +25,6 @@ const API = {
         }
     },
 
-    // =================================================================
-    // MODIFIED FUNCTION
-    // =================================================================
     async fetchLmpData(filter = State.currentFilter) { // Changed: Added default parameter
         const timeDisplay = document.getElementById('current-time-display');
         timeDisplay.innerText = "Loading LMP data...";
@@ -78,6 +75,8 @@ const API = {
             const lmpDataByZone = await response.json();
             this.processLmpData(lmpDataByZone);
 
+            MapUtils.createLegend();
+
             if (State.timeSeriesData.length === 0) {
                 timeDisplay.innerText = "No data returned for the selected query.";
                 return;
@@ -93,9 +92,6 @@ const API = {
             alert("Could not load LMP data. The map will not be colored.");
         }
     },
-    // =================================================================
-    // END OF MODIFIED FUNCTION
-    // =================================================================
 
     processLmpData(lmpDataByZone) {
         const dataByTimestamp = {};

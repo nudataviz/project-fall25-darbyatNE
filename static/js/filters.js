@@ -102,7 +102,8 @@ const Filters = {
         }
 
         const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        
+        const priceTypeLabels = {'RT': 'Real-Time', 'DA': 'Day-Ahead', 'NET': 'Net'};
+
         container.innerHTML = State.savedFilters.map((filter, index) => {
             const selectedDays = dayLabels.filter((_, i) => filter.daysOfWeek[i]).join(", ");
             const formatTime = (hours) => {
@@ -110,8 +111,9 @@ const Filters = {
                 const m = Math.round((hours - h) * 60);
                 return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             };
-            // MODIFIED: Added Price Type to the display
-            const priceTypeLabel = filter.price_type === 'DA' ? 'Day-Ahead' : 'Real-Time';
+            
+            // MODIFIED: Use the lookup object to get the label
+            const priceTypeLabel = priceTypeLabels[filter.price_type] || filter.price_type;
             
             return `
                 <div class="saved-filter-item">

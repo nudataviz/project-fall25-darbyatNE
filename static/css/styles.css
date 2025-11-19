@@ -8,15 +8,46 @@ html, body {
     margin: 0;
     background-color: #f0f0f0;
     font-family: system-ui, -apple-system, sans-serif;
+    /* ADDED: Prevent vertical scrollbar from appearing */
+    overflow: hidden;
 }
+
+/* ================================================================= */
+/* ADDED: Header Styles */
+/* ================================================================= */
+#header {
+    background-color: #fff;
+    color: #333;
+    padding: 15px 20px;
+    text-align: center;
+    border-bottom: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 900; /* Sit below the filter button and panel */
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+#header p {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #666;
+}
+/* ================================================================= */
 
 #map {
     height: 100%;
     width: 100%;
 }
 
+/* MODIFIED: Adjusted height to make space for the new header */
 #map-container {
-    height: 90vh;
+    /* 100vh (full height) - 10vh (controls) - 78px (header height) */
+    height: calc(100vh - 10vh - 78px);
     width: 100%;
 }
 
@@ -86,39 +117,26 @@ html, body {
     pointer-events: none;
 }
 
-/* Legend Styles */
 .legend {
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-    border-radius: 5px;
-    color: #333;
+    margin-top: 60px !important;  /* Offset below filter button */
 }
 
 .legend h4 {
-    margin: 0 0 10px;
-    padding: 0;
-    font-size: 16px;
-    font-weight: bold;
-    text-align: left;
+    margin-top: 0;
 }
 
 .legend-item {
     display: flex;
-    align-items: center; /
-    margin-bottom: 6px; /* Adds space between each line item */
+    align-items: center;
+    margin-bottom: 4px;
 }
 
-.legend-item:last-child {
-    margin-bottom: 0;
-}
-
-.legend-color-box {
+.legend-item i {
     width: 18px;
     height: 18px;
     margin-right: 8px;
-    border: 1px solid #999; /* Adds a subtle border, great for light colors */
-    flex-shrink: 0; /* Prevents the box from shrinking if text is long */
+    opacity: 0.8;
+    border: 1px solid rgba(0,0,0,0.2);
 }
 
 /* Filter Panel Styles */
@@ -175,16 +193,6 @@ html, body {
     margin: 0 0 10px 0;
     font-size: 14px;
     color: #555;
-}
-
-.custom-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    cursor: pointer;
 }
 
 .date-inputs {
@@ -335,4 +343,14 @@ html, body {
 
 #close-filter:hover {
     color: #000;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    cursor: pointer;
 }

@@ -16,6 +16,12 @@
 </head>
 <body>
 
+    <!-- Application Header -->
+    <div id="header">
+        <h1>PJM Locational Marginal Price Map</h1>
+        <p>Visualizing historical LMP data across PJM zones</p>
+    </div>
+
     <button id="filter-toggle">⚙️ Filters</button>
 
     <div id="filter-panel">
@@ -38,12 +44,13 @@
             </div>
         </div>
 
-        <!-- NEW: Price Type Section -->
+        <!-- Price Type Section -->
         <div class="filter-section">
             <h4>Price Type</h4>
             <select id="price-type-select" class="custom-select">
                 <option value="RT">Real-Time</option>
                 <option value="DA">Day-Ahead</option>
+                <option value="NET">Net</option> 
             </select>
         </div>
 

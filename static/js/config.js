@@ -87,6 +87,7 @@ const CONFIG = {
         endDate: new Date('2025-07-19'),
         startTime: 15,
         endTime: 20,
-        daysOfWeek: [false, true, true, true, true, true, false]
+        daysOfWeek: [false, true, true, true, true, true, false],
+        price_type: "DA"
     }
 };

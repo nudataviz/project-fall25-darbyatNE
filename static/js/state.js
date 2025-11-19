@@ -12,7 +12,8 @@ const State = {
         endDate: new Date(CONFIG.DEFAULT_FILTER.endDate),
         startTime: CONFIG.DEFAULT_FILTER.startTime,
         endTime: CONFIG.DEFAULT_FILTER.endTime,
-        daysOfWeek: [...CONFIG.DEFAULT_FILTER.daysOfWeek]
+        daysOfWeek: [...CONFIG.DEFAULT_FILTER.daysOfWeek],
+        price_type: CONFIG.DEFAULT_FILTER.price_type
     },
     
     savedFilters: []

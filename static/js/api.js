@@ -25,36 +25,41 @@ const API = {
         }
     },
 
-    async fetchLmpData() {
+    // =================================================================
+    // MODIFIED FUNCTION
+    // =================================================================
+    async fetchLmpData(filter = State.currentFilter) { // Changed: Added default parameter
         const timeDisplay = document.getElementById('current-time-display');
         timeDisplay.innerText = "Loading LMP data...";
         
         try {
             // Build hours array from time range
             const hours = Array(24).fill(false);
-            const startHour = Math.floor(State.currentFilter.startTime);
-            const endHour = Math.ceil(State.currentFilter.endTime);
+            // Changed: Use 'filter' instead of 'State.currentFilter'
+            const startHour = Math.floor(filter.startTime);
+            const endHour = Math.ceil(filter.endTime);
             
             for (let i = startHour; i < endHour; i++) {
                 hours[i] = true;
             }
 
-            // Build days of week array (convert to 1-7, Monday=1, Sunday=7)
+            // Build days of week array
             const daysOfWeek = [];
-            State.currentFilter.daysOfWeek.forEach((active, index) => {
+            // Changed: Use 'filter' instead of 'State.currentFilter'
+            filter.daysOfWeek.forEach((active, index) => { 
                 if (active) {
-                    // Convert from JS (0=Sun) to API format (1=Mon, 7=Sun)
                     const apiDay = index === 0 ? 7 : index;
                     daysOfWeek.push(apiDay);
                 }
             });
 
             const queryPayload = {
-                start_day: State.currentFilter.startDate.toISOString().split('T')[0],
-                end_day: State.currentFilter.endDate.toISOString().split('T')[0],
+                // Changed: Use 'filter' for all properties
+                start_day: filter.startDate.toISOString().split('T')[0],
+                end_day: filter.endDate.toISOString().split('T')[0],
                 days_of_week: daysOfWeek,
                 hours: hours,
-                price_type: "NET"
+                price_type: filter.price_type // This line is now correct
             };
             
             console.log("Query payload:", queryPayload);
@@ -88,6 +93,9 @@ const API = {
             alert("Could not load LMP data. The map will not be colored.");
         }
     },
+    // =================================================================
+    // END OF MODIFIED FUNCTION
+    // =================================================================
 
     processLmpData(lmpDataByZone) {
         const dataByTimestamp = {};

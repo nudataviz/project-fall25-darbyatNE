@@ -27,31 +27,44 @@
             <div class="date-inputs">
                 <div class="date-input-row">
                     <label>Start:</label>
-                    <input type="date" id="start-date" value="2025-07-13">
+                    <!-- Value will be set by JavaScript -->
+                    <input type="date" id="start-date">
                 </div>
                 <div class="date-input-row">
                     <label>End:</label>
-                    <input type="date" id="end-date" value="2025-07-19">
+                    <!-- Value will be set by JavaScript -->
+                    <input type="date" id="end-date">
                 </div>
             </div>
+        </div>
+
+        <!-- NEW: Price Type Section -->
+        <div class="filter-section">
+            <h4>Price Type</h4>
+            <select id="price-type-select" class="custom-select">
+                <option value="RT">Real-Time</option>
+                <option value="DA">Day-Ahead</option>
+            </select>
         </div>
 
         <div class="filter-section">
             <h4>Days of Week</h4>
             <div class="days-container">
+                <!-- 'active' class will be set by JavaScript -->
                 <button class="day-button" data-day="0">Sun</button>
-                <button class="day-button active" data-day="1">Mon</button>
-                <button class="day-button active" data-day="2">Tue</button>
-                <button class="day-button active" data-day="3">Wed</button>
-                <button class="day-button active" data-day="4">Thu</button>
-                <button class="day-button active" data-day="5">Fri</button>
+                <button class="day-button" data-day="1">Mon</button>
+                <button class="day-button" data-day="2">Tue</button>
+                <button class="day-button" data-day="3">Wed</button>
+                <button class="day-button" data-day="4">Thu</button>
+                <button class="day-button" data-day="5">Fri</button>
                 <button class="day-button" data-day="6">Sat</button>
             </div>
         </div>
 
         <div class="filter-section">
             <h4>Time Range</h4>
-            <div id="time-display">15:00 — 20:00</div>
+            <!-- Text will be set by JavaScript -->
+            <div id="time-display">--:-- &mdash; --:--</div> 
             <div id="time-slider-container">
                 <svg id="time-slider-svg" width="100%" height="80"></svg>
             </div>
@@ -67,6 +80,7 @@
             </div>
         </div>
     </div>
+
 
     <div id="map-container">
         <div id="map"></div>

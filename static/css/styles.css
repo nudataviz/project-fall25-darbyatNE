@@ -86,26 +86,39 @@ html, body {
     pointer-events: none;
 }
 
+/* Legend Styles */
 .legend {
-    margin-top: 60px !important;  /* Offset below filter button */
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    border-radius: 5px;
+    color: #333;
 }
 
 .legend h4 {
-    margin-top: 0;
+    margin: 0 0 10px;
+    padding: 0;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: left;
 }
 
 .legend-item {
     display: flex;
-    align-items: center;
-    margin-bottom: 4px;
+    align-items: center; /
+    margin-bottom: 6px; /* Adds space between each line item */
 }
 
-.legend-item i {
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-color-box {
     width: 18px;
     height: 18px;
     margin-right: 8px;
-    opacity: 0.8;
-    border: 1px solid rgba(0,0,0,0.2);
+    border: 1px solid #999; /* Adds a subtle border, great for light colors */
+    flex-shrink: 0; /* Prevents the box from shrinking if text is long */
 }
 
 /* Filter Panel Styles */
@@ -162,6 +175,16 @@ html, body {
     margin: 0 0 10px 0;
     font-size: 14px;
     color: #555;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    cursor: pointer;
 }
 
 .date-inputs {

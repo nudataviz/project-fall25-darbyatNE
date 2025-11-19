@@ -47,6 +47,7 @@ const Animation = {
             State.geojsonLayer.setStyle(MapUtils.getStyle);
             MapUtils.updatePopups(State.currentTimeIndex);
             MapUtils.updateLabels(State.currentTimeIndex);
+            MapUtils.updateZoneColors(State.currentTimeIndex);
         }
     },
 

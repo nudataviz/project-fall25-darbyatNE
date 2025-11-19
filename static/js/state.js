@@ -1,12 +1,18 @@
-// Global state management
+// /static/js/state.js
+
 const State = {
     map: null,
     geojsonLayer: null,
     timeSeriesData: [],
-    labelMarkers: {},
     currentTimeIndex: 0,
     animationTimer: null,
-    
+    isAnimationStarted: false,
+
+    // Properties for map controls
+    zoneLayers: {},
+    legendControl: null,     
+    priceTypeControl: null,
+
     currentFilter: {
         startDate: new Date(CONFIG.DEFAULT_FILTER.startDate),
         endDate: new Date(CONFIG.DEFAULT_FILTER.endDate),

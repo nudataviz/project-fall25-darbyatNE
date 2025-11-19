@@ -1,6 +1,8 @@
+// /static/js/map.js
+
 const MapUtils = {
     /**
-     * Initializes the Leaflet map, tile layer, and event listeners.
+     * Initializes the Leaflet map, its controls, and the tile layer.
      */
     initializeMap() {
         State.map = L.map('map').setView(CONFIG.MAP.initialView, CONFIG.MAP.initialZoom);
@@ -8,211 +10,148 @@ const MapUtils = {
             maxZoom: CONFIG.MAP.maxZoom,
             attribution: CONFIG.MAP.attribution
         }).addTo(State.map);
-        
-        // Developer helper to log coordinates on right-click
-        State.map.on('contextmenu', function(e) {
-            console.log(`Map Coordinates: [${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}]`);
-        });
 
-        // Ensures map resizes correctly if its container was hidden
-        setTimeout(() => {
-            State.map.invalidateSize();
-        }, 100);
+        // Create the unified legend on initial load
+        this.createLegend();
+
+        // Invalidate map size after a short delay to ensure proper rendering
+        setTimeout(() => State.map.invalidateSize(), 100);
     },
 
     /**
-     * Gets the color for a given LMP value based on the descending COLOR_SCALE in config.js.
-     * @param {number|null|undefined} lmp - The Locational Marginal Price.
-     * @returns {string} A hex color code.
+     * Adds the zone shapes to the map and updates the unified legend.
      */
-    getColor(lmp) {
-        if (lmp === undefined || lmp === null) {
-            return CONFIG.NO_DATA_COLOR;
+    addZoneShapesToMap(geojson) {
+        if (State.geojsonLayer) {
+            State.map.removeLayer(State.geojsonLayer);
         }
-        // The COLOR_SCALE is ordered from highest to lowest threshold.
-        // Loop through and find the first threshold the value is greater than.
+        State.zoneLayers = {};
+
+        State.geojsonLayer = L.geoJSON(geojson, {
+            style: this.getStyleForFeature,
+            onEachFeature: this.onEachFeature
+        }).addTo(State.map);
+
+        // Update the legend to reflect the new data state
+        this.createLegend();
+    },
+
+    /**
+     * Defines behavior for each feature (zone) when it's created.
+     */
+    onEachFeature(feature, layer) {
+        const zoneName = feature.properties.zone_name;
+        State.zoneLayers[zoneName] = layer;
+
+        layer.bindTooltip(zoneName, {
+            permanent: true,
+            direction: 'center',
+            className: 'zone-label'
+        }).openTooltip();
+
+        layer.bindPopup(`<strong>${zoneName}</strong>`);
+    },
+
+    /**
+     * Dynamically determines the style of a zone.
+     */
+    getStyleForFeature(feature) {
+        const zoneName = feature.properties.zone_name;
+
+        if (!State.isAnimationStarted) {
+            return { fillColor: '#808080', weight: 1.5, opacity: 1, color: 'white', fillOpacity: 0.7 };
+        }
+
+        const lmpData = State.timeSeriesData[State.currentTimeIndex]?.readings;
+        const lmp = lmpData ? lmpData[zoneName] : undefined;
+        const color = MapUtils.getColorForLmp(lmp);
+
+        return { fillColor: color, weight: 2, opacity: 1, color: 'white', fillOpacity: 0.7 };
+    },
+
+    /**
+     * Gets the color for a given LMP value.
+     */
+    getColorForLmp(lmp) {
+        if (lmp === undefined || lmp === null) return CONFIG.NO_DATA_COLOR;
         for (const scale of CONFIG.COLOR_SCALE) {
-            if (lmp > scale.threshold) {
-                return scale.color;
-            }
+            if (lmp > scale.threshold) return scale.color;
         }
-        // This will catch any value that didn't meet the other thresholds (e.g., <= 0)
-        // because the last threshold is -Infinity.
         return CONFIG.COLOR_SCALE[CONFIG.COLOR_SCALE.length - 1].color;
     },
 
     /**
-     * Sets the *initial* style for GeoJSON features.
-     * Zones will start with the 'No Data' color until LMP data is loaded.
+     * Updates the text of the zone labels (tooltips) to show prices.
      */
-    getStyle(feature) {
-        return {
-            fillColor: CONFIG.NO_DATA_COLOR, // Default color
-            fillOpacity: 0.7,
-            weight: 2,
-            opacity: 1,
-            color: '#FFFFFF', // White border for good contrast
-            dashArray: ''
-        };
-    },
+    updateLabelsToPrice(index) {
+        if (!State.isAnimationStarted || !State.timeSeriesData[index]) return;
+        const lmpData = State.timeSeriesData[index].readings;
 
-    /**
-     * Highlights a feature on mouseover.
-     */
-    highlightFeature(e) {
-        const layer = e.target;
-        layer.setStyle({ weight: 4, color: '#333', dashArray: '' });
-        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-            layer.bringToFront();
-        }
-    },
-
-    /**
-     * Resets the highlight on mouseout, preserving the dynamic fill color.
-     */
-    resetHighlight(e) {
-        const layer = e.target;
-        // Revert only the properties that were changed for the highlight
-        // This prevents the fillColor from being reset to the default gray.
-        layer.setStyle({
-            weight: 2,          // Back to original weight
-            color: '#FFFFFF'    // Back to original white border
-        });
-    },
-
-    /**
-     * Defines behavior for each feature (zone), such as popups and labels.
-     */
-    onEachFeature(feature, layer) {
-        layer.on({
-            mouseover: MapUtils.highlightFeature,
-            mouseout: MapUtils.resetHighlight
-        });
-
-        const zoneName = feature.properties.zone_name;
-        layer.bindPopup(`<strong>${zoneName || "Unknown Zone"}</strong>`);
-
-        if (zoneName) {
-            State.labelMarkers[zoneName] = [];
-
-            const createLabel = (center) => {
-                return L.marker(center, {
-                    icon: L.divIcon({ className: 'zone-label', html: '', iconSize: [80, 20] }),
-                    interactive: false
-                }).addTo(State.map);
-            };
-
-            const overrides = CONFIG.ZONE_LABEL_OVERRIDES[zoneName];
-            if (overrides && overrides.length > 0) {
-                overrides.forEach(coords => {
-                    const center = L.latLng(coords[0], coords[1]);
-                    const label = createLabel(center);
-                    State.labelMarkers[zoneName].push(label);
-                });
-                return;
-            }
-
-            if (feature.geometry.type === 'MultiPolygon') {
-                const polygonLatLngs = layer.getLatLngs();
-                polygonLatLngs.forEach(latlngs => {
-                    const tempPolygon = L.polygon(latlngs);
-                    const center = tempPolygon.getBounds().getCenter();
-                    const label = createLabel(center);
-                    State.labelMarkers[zoneName].push(label);
-                });
-            } else {
-                const center = layer.getBounds().getCenter();
-                const label = createLabel(center);
-                State.labelMarkers[zoneName].push(label);
+        for (const zoneName in State.zoneLayers) {
+            const layer = State.zoneLayers[zoneName];
+            if (layer && lmpData) {
+                const lmp = lmpData[zoneName];
+                const priceText = (lmp !== undefined) ? `$${lmp.toFixed(2)}` : 'N/A';
+                layer.setTooltipContent(priceText);
             }
         }
     },
 
     /**
-     * Updates the fill color of each zone based on its LMP value for a given time index.
-     */
-    updateZoneColors(index) {
-        const lmpDataForTime = State.timeSeriesData[index]?.readings;
-        if (!lmpDataForTime || !State.geojsonLayer) return;
-
-        State.geojsonLayer.eachLayer(function(layer) {
-            const zoneName = layer.feature.properties.zone_name;
-            const lmp = lmpDataForTime[zoneName];
-            const fillColor = MapUtils.getColor(lmp); // Use the getColor function
-
-            layer.setStyle({
-                fillColor: fillColor
-            });
-        });
-    },
-
-    /**
-     * Updates the popup content for each zone with the current LMP data.
+     * Updates the on-click popup content for each zone.
      */
     updatePopups(index) {
-        const lmpDataForTime = State.timeSeriesData[index]?.readings;
-        if (!lmpDataForTime || !State.geojsonLayer) return;
+        if (!State.timeSeriesData[index] || !State.geojsonLayer) return;
+        const lmpData = State.timeSeriesData[index].readings;
 
         State.geojsonLayer.eachLayer(function(layer) {
             const zoneName = layer.feature.properties.zone_name;
-            const lmp = lmpDataForTime[zoneName];
+            const lmp = lmpData ? lmpData[zoneName] : undefined;
             const content = `<strong>${zoneName}</strong><br>LMP: ${lmp !== undefined ? `$${lmp.toFixed(2)}` : 'No data'}`;
             layer.setPopupContent(content);
         });
     },
 
     /**
-     * Updates the text for the zone labels with the current LMP data.
-     */
-    updateLabels(index) {
-        const lmpDataForTime = State.timeSeriesData[index]?.readings;
-        if (!lmpDataForTime) return;
-
-        for (const zoneName in State.labelMarkers) {
-            const markers = State.labelMarkers[zoneName];
-            const lmp = lmpDataForTime[zoneName];
-            const labelText = (lmp !== null && lmp !== undefined) ? `$${lmp.toFixed(1)}` : '';
-            
-            for (const marker of markers) {
-                marker.getIcon().options.html = labelText;
-                marker.setIcon(marker.getIcon());
-            }
-        }
-    },
-
-    /**
-     * Dynamically creates the map legend from the CONFIG.COLOR_SCALE.
+     * MERGED: Creates or updates the map legend, now including the Price Type.
      */
     createLegend() {
-        const legend = L.control({ position: 'bottomright' });
-
-        legend.onAdd = function() {
+        if (State.legendControl) {
+            State.map.removeControl(State.legendControl);
+        }
+        State.legendControl = L.control({ position: 'bottomright' });
+        State.legendControl.onAdd = function() {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML += '<h4>LMP ($/MWh)</h4>';
+            let legendHtmlParts = [];
 
-            // Loop through the color scale to build the legend items
-            for (const scale of CONFIG.COLOR_SCALE) {
-                div.innerHTML +=
-                    `<div class="legend-item">
-                        <i class="legend-color-box" style="background:${scale.color};"></i>
-                        <span>${scale.label}</span>
-                    </div>`;
+            // --- Logic from createPriceTypeControl is now here ---
+            const priceTypeMap = {
+                'RT': 'Real Time Prices',
+                'DA': 'Day Ahead Prices',
+                'NET': 'Net Price of Two Settlement'
+            };
+            const priceTypeDescription = priceTypeMap[State.currentFilter.price_type] || 'Unknown Price Type';
+            legendHtmlParts.push(`<h4>Price Type</h4><span>${priceTypeDescription}</span>`);
+            legendHtmlParts.push('<hr class="legend-hr">'); // Adds a separator line
+            // --- End of merged logic ---
+
+            if (!State.isAnimationStarted) {
+                legendHtmlParts.push('<h4>Zone</h4>');
+                legendHtmlParts.push(`<div class="legend-item"><i class="legend-color-box" style="background:#808080;"></i><span>Zone Area</span></div>`);
+            } else {
+                legendHtmlParts.push('<h4>LMP ($/MWh)</h4>');
+                for (const scale of CONFIG.COLOR_SCALE) {
+                    legendHtmlParts.push(`<div class="legend-item"><i class="legend-color-box" style="background:${scale.color};"></i><span>${scale.label}</span></div>`);
+                }
+                legendHtmlParts.push(`<div class="legend-item"><i class="legend-color-box" style="background:${CONFIG.NO_DATA_COLOR};"></i><span>No Data</span></div>`);
             }
-
-            // Add the 'No Data' color to the legend
-            div.innerHTML +=
-                `<div class="legend-item">
-                    <i class="legend-color-box" style="background:${CONFIG.NO_DATA_COLOR};"></i>
-                    <span>No Data</span>
-                </div>`;
-
-            // Prevent map interactions when clicking on the legend
+            
+            div.innerHTML = legendHtmlParts.join('');
             L.DomEvent.disableClickPropagation(div);
-
             return div;
         };
-
-        legend.addTo(State.map);
+        State.legendControl.addTo(State.map);
     }
+    // The createPriceTypeControl function has been removed.
 };
 

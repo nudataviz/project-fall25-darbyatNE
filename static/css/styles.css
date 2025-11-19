@@ -139,6 +139,12 @@ html, body {
     border: 1px solid rgba(0,0,0,0.2);
 }
 
+.legend-hr {
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 8px 0;
+}
+
 /* Filter Panel Styles */
 #filter-panel {
     position: fixed;
@@ -353,4 +359,20 @@ html, body {
     background-color: white;
     font-size: 14px;
     cursor: pointer;
+}
+
+.price-type-display {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    text-align: right;
+}
+
+.price-type-display h4 {
+    margin: 0 0 5px;
+    color: #777;
+    font-size: 12px;
 }

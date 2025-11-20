@@ -1,4 +1,5 @@
 // API communication functions
+
 const API = {
     async fetchZoneShapes() {
         try {
@@ -59,6 +60,7 @@ const API = {
                 price_type: filter.price_type // This line is now correct
             };
             
+            console.log("\n--- Jsonified Output ---");
             console.log("Query payload:", queryPayload);
             
             const response = await fetch(CONFIG.API.lmpRange, {
@@ -73,6 +75,10 @@ const API = {
             }
             
             const lmpDataByZone = await response.json();
+            const csvString = window.convertLmpDataToCSV(lmpDataByZone);
+
+            console.log("\n--- Converted CSV Output ---");
+            console.log(csvString); // Logging the CSV string debug/verify 
             this.processLmpData(lmpDataByZone);
 
             MapUtils.createLegend();

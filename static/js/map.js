@@ -80,7 +80,7 @@ const MapUtils = {
         const lmpData = State.timeSeriesData[State.currentTimeIndex]?.readings;
         const lmp = lmpData ? lmpData[zoneName] : undefined;
         const color = MapUtils.getColorForLmp(lmp);
-        return { fillColor: color, weight: 2, opacity: 1, color: 'white', fillOpacity: 0.7 };
+        return { fillColor: color, weight: 2, opacity: 1, color: 'white', fillOpacity: 0.85 };
     },
 
     /** Gets the color for a given LMP value. */
@@ -96,6 +96,7 @@ const MapUtils = {
     updateLabelsToPrice(index) {
         if (!State.isAnimationStarted || !State.timeSeriesData[index]) return;
         const lmpData = State.timeSeriesData[index].readings;
+        const OPACITY = 0.6;
 
         for (const zoneName in State.labelMarkers) {
             const markers = State.labelMarkers[zoneName];
@@ -104,10 +105,13 @@ const MapUtils = {
             const lmp = lmpData[zoneName];
             const priceText = (lmp !== undefined) ? `$${lmp.toFixed(2)}` : 'N/A';
             
+            // Get the corresponding color for the LMP value.
+            const color = MapUtils.getColorForLmp(lmp);
+            
             for (const marker of markers) {
-                // Directly update the HTML content of the divIcon
-                marker.getIcon().options.html = `<span>${priceText}</span>`;
-                marker.setIcon(marker.getIcon()); // Redraw the icon with new content
+                // Update the HTML to include the new text AND the new background color.
+                marker.getIcon().options.html = `<span style="background-color: ${color};">${priceText}</span>`;
+                marker.setIcon(marker.getIcon()); // Redraw the icon
             }
         }
     },

@@ -19,18 +19,28 @@ const CONFIG = {
     },
     
     COLOR_SCALE: [
-        { threshold: 100, color: '#9e0142', label: '> $100' },
-        { threshold: 75, color: '#d53e4f', label: '$75.01 – $100' },
-        { threshold: 62, color: '#f46d43', label: '$62.01 – $75' },
-        { threshold: 52, color: '#fdae61', label: '$52.01 – $62' },
-        { threshold: 44, color: '#fee08b', label: '$44.01 – $52' },
-        { threshold: 37, color: '#ffffbf', label: '$37.01 – $44' },
-        { threshold: 30, color: '#e6f598', label: '$30.01 – $37' },
-        { threshold: 25, color: '#abdda4', label: '$25.01 – $30' },
-        { threshold: 20, color: '#66c2a5', label: '$20.01 – $25' },
-        { threshold: 0, color: '#3288bd', label: '$0 – $20' },
-        { threshold: -Infinity, color: '#5e4fa2', label: '< $0' }
+        // Very High: Deep, saturated reds
+        { threshold: 100, color: '#b30000', label: '> $100' },
+        { threshold: 75, color: '#dc3545', label: '$75.01 – $100' },
+
+        // High: Bright, clear oranges
+        { threshold: 62, color: '#ff5500', label: '$62.01 – $75' },
+        { threshold: 52, color: '#ff7b00', label: '$52.01 – $62' },
+        { threshold: 44, color: '#ff9900', label: '$44.01 – $52' },
+
+        // Mid: Vibrant yellow and green
+        { threshold: 37, color: '#ffc107', label: '$37.01 – $44' },
+        { threshold: 30, color: '#99cc33', label: '$30.01 – $37' },
+        { threshold: 25, color: '#00cc66', label: '$25.01 – $30' },
+
+        // Low: Crisp blues
+        { threshold: 20, color: '#00aaff', label: '$20.01 – $25' },
+        { threshold: 0, color: '#007bff', label: '$0 – $20' },
+        
+        // Negative: Maintained as purple
+        { threshold: -Infinity, color: '#800080', label: '< $0' }
     ],
+
     
     NO_DATA_COLOR: '#808080',
 

@@ -70,7 +70,7 @@ Before you begin, ensure you have the following installed on your system:
     The `lmp_env.yml` file contains all necessary Python dependencies.
     ```bash
     conda env create -f lmp_env.yml
-    conda activate fework
+    conda activate lmp-env
     ```
 
 ### Running the Application

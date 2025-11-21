@@ -18,12 +18,16 @@ const App = {
         TimeSlider.init();
         Animation.init();
         MapUtils.createLegend();
+        ViewToggle.init(); // Initialize view toggle
 
         // 3. Load initial data based on the default filter state.
         API.fetchZoneShapes().then(() => {
             // Now that shapes are loaded, fetch the initial LMP data.
             // Pass the initialized State.currentFilter to the API.
             API.fetchLmpData(State.currentFilter); 
+            
+            // Initialize zone selection after zones are loaded
+            ZoneSelection.init();
         });
     }
 };

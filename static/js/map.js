@@ -1,4 +1,4 @@
-// In /static/js/map.js - Replace the entire MapUtils object with this
+// In /static/js/map.js
 
 const MapUtils = {
     /** Initializes the Leaflet map, its controls, and the tile layer. */
@@ -26,7 +26,6 @@ const MapUtils = {
 
         State.geojsonLayer = L.geoJSON(geojson, {
             style: this.getStyleForFeature,
-            // Pass 'this' context to onEachFeature
             onEachFeature: this.onEachFeature.bind(this)
         }).addTo(State.map);
 
@@ -43,14 +42,24 @@ const MapUtils = {
         // Initialize the array for this zone's labels
         State.labelMarkers[zoneName] = [];
 
+        // Add Ctrl+Left-click handler for zone selection
+        layer.on('click', (e) => {
+            // Check if Ctrl key (or Cmd on Mac) is pressed
+            if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+                L.DomEvent.preventDefault(e);
+                L.DomEvent.stopPropagation(e);
+                ZoneSelection.toggleZoneSelection(zoneName);
+            }
+        });
+
         const createLabel = (center, initialText) => {
             return L.marker(center, {
                 icon: L.divIcon({
                     className: 'zone-label',
                     html: `<span>${initialText}</span>`,
-                    iconSize: [70, 20] // Adjust size as needed
+                    iconSize: [70, 20]
                 }),
-                interactive: false // Labels don't capture clicks
+                interactive: false
             }).addTo(State.map);
         };
 
@@ -62,7 +71,7 @@ const MapUtils = {
                 const label = createLabel(center, zoneName);
                 State.labelMarkers[zoneName].push(label);
             });
-            return; // Skip automatic placement
+            return;
         }
 
         // This handles both Polygon and MultiPolygon features correctly.
@@ -74,13 +83,33 @@ const MapUtils = {
     /** Dynamically determines the style of a zone. */
     getStyleForFeature(feature) {
         const zoneName = feature.properties.zone_name;
-        if (!State.isAnimationStarted) {
-            return { fillColor: '#808080', weight: 1.5, opacity: 1, color: 'white', fillOpacity: 0.7 };
+        
+        // Base style
+        let style = {
+            weight: 2,
+            opacity: 1,
+            color: 'white',
+            fillOpacity: 0.85
+        };
+        
+        // Check if selected - apply bold colored border
+        if (State.selectedZones.has(zoneName)) {
+            style.weight = 5;
+            style.color = '#FFD700'; // Gold color for selection
+            style.opacity = 1;
         }
-        const lmpData = State.timeSeriesData[State.currentTimeIndex]?.readings;
-        const lmp = lmpData ? lmpData[zoneName] : undefined;
-        const color = MapUtils.getColorForLmp(lmp);
-        return { fillColor: color, weight: 2, opacity: 1, color: 'white', fillOpacity: 0.85 };
+        
+        // Determine fill color
+        if (!State.isAnimationStarted) {
+            style.fillColor = '#808080';
+            style.fillOpacity = 0.7;
+        } else {
+            const lmpData = State.timeSeriesData[State.currentTimeIndex]?.readings;
+            const lmp = lmpData ? lmpData[zoneName] : undefined;
+            style.fillColor = MapUtils.getColorForLmp(lmp);
+        }
+        
+        return style;
     },
 
     /** Gets the color for a given LMP value. */
@@ -96,7 +125,6 @@ const MapUtils = {
     updateLabelsToPrice(index) {
         if (!State.isAnimationStarted || !State.timeSeriesData[index]) return;
         const lmpData = State.timeSeriesData[index].readings;
-        const OPACITY = 0.6;
 
         for (const zoneName in State.labelMarkers) {
             const markers = State.labelMarkers[zoneName];
@@ -105,13 +133,11 @@ const MapUtils = {
             const lmp = lmpData[zoneName];
             const priceText = (lmp !== undefined) ? `$${lmp.toFixed(2)}` : 'N/A';
             
-            // Get the corresponding color for the LMP value.
             const color = MapUtils.getColorForLmp(lmp);
             
             for (const marker of markers) {
-                // Update the HTML to include the new text AND the new background color.
                 marker.getIcon().options.html = `<span style="background-color: ${color};">${priceText}</span>`;
-                marker.setIcon(marker.getIcon()); // Redraw the icon
+                marker.setIcon(marker.getIcon());
             }
         }
     },

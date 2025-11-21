@@ -14,6 +14,9 @@ const State = {
     legendControl: null,     
     priceTypeControl: null,
 
+    // Selected zones tracking
+    selectedZones: new Set(),
+
     currentFilter: {
         startDate: new Date(CONFIG.DEFAULT_FILTER.startDate),
         endDate: new Date(CONFIG.DEFAULT_FILTER.endDate),

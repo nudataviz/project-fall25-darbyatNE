@@ -29,7 +29,7 @@ const Animation = {
         const currentDataPoint = State.timeSeriesData[State.currentTimeIndex];
         if (!currentDataPoint) return;
 
-        // Update time display text (assuming this part is correct)
+        // Update time display text
         const currentDate = new Date(currentDataPoint.datetime);
         const currentHour = currentDate.getHours();
         const nextHour = (currentHour + 1) % 24;
@@ -38,6 +38,7 @@ const Animation = {
         const hourString = `Hour: ${String(currentHour).padStart(2, '0')}:00 - ${String(nextHour).padStart(2, '0')}:00`;
         document.getElementById('current-time-display').innerText = `${dayOfWeek}, ${dateString} | ${hourString}`;
 
+        // Update 2D view (Leaflet)
         if (State.geojsonLayer) {
             // Redraw the zone colors by re-evaluating the style for every feature
             State.geojsonLayer.setStyle(MapUtils.getStyleForFeature);
@@ -47,6 +48,11 @@ const Animation = {
             if (State.isAnimationStarted) {
                 MapUtils.updateLabelsToPrice(State.currentTimeIndex);
             }
+        }
+
+        // Update 3D view (Mapbox) if it's active
+        if (typeof ViewToggle !== 'undefined' && ViewToggle.getCurrentView() === '3d') {
+            View3D.updateForTimeIndex(State.currentTimeIndex);
         }
     },
 
@@ -59,12 +65,22 @@ const Animation = {
             // This also fixes the "updateLegend is not a function" crash
             MapUtils.createLegend();
             
+            // Update 3D view legend if in 3D mode
+            if (typeof ViewToggle !== 'undefined' && ViewToggle.getCurrentView() === '3d') {
+                View3D.updateLegend();
+            }
+            
+            // Generate initial CSV with current data
+            if (typeof ZoneSelection !== 'undefined') {
+                ZoneSelection.updateFilteredCSV();
+            }
+            
             // Force an immediate update of the map to switch from grey zones/names to colored zones/prices
             this.updateMapForTimeIndex(State.currentTimeIndex);
         }
 
         // Standard play logic
-        document.getElementById('play-pause-button').innerText = '❚❚ Pause';
+        document.getElementById('play-pause-button').innerText = '⏸ Pause';
         
         State.animationTimer = setInterval(() => {
             let nextIndex = State.currentTimeIndex + 1;

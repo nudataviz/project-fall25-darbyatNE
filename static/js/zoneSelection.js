@@ -162,6 +162,11 @@ const ZoneSelection = {
         // Update CSV display/download
         this.updateCSVDisplay(csvString);
         
+        // Update Observable Plot with filtered data
+        if (typeof ObservablePlot !== 'undefined') {
+            ObservablePlot.updatePlot(filteredData);
+        }
+        
         console.log(`📊 CSV updated with ${Object.keys(filteredData).length} zones`);
     },
 

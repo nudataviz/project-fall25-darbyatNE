@@ -1,5 +1,3 @@
-// /static/js/animation.js
-
 const Animation = {
     init() {
         const slider = document.getElementById('hour-slider');

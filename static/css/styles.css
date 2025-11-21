@@ -1,224 +1,219 @@
-* {
-    box-sizing: border-box;
-}
+/* ============================
+   Global / Layout
+   ============================ */
+* { box-sizing: border-box; }
 
 html, body {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    background-color: #f0f0f0;
-    font-family: system-ui, -apple-system, sans-serif;
-    overflow: hidden;
+  height: 100%;
+  margin: 0;
+  width: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: #f0f0f0;
+  color: #222;
 }
 
-/* ================================================================= */
-/* Header Styles */
-/* ================================================================= */
+/* Make page a column flex so map fills available space reliably */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
 #header {
-    background-color: #fff;
-    color: #333;
-    padding: 15px 20px;
-    text-align: center;
-    border-bottom: 1px solid #ccc;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    position: relative;
-    z-index: 900;
+  background: #fff;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  z-index: 900;
+}
+#header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+#header p { margin: 6px 0 0 0; color: #666; font-size: 13px; }
+
+/* Filter toggle (floating) */
+#filter-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #007bff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
 
-#header h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
+/* Filter panel */
+#filter-panel {
+  position: fixed;
+  top: 0;
+  right: -460px;
+  width: 450px;
+  height: 100vh;
+  background: white;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.14);
+  transition: right 0.28s ease;
+  z-index: 1001;
+  padding: 20px;
+  overflow-y: auto;
 }
+#filter-panel.open { right: 0; }
+#filter-panel h3 { margin-top: 0; }
+#close-filter { float: right; background: none; border: none; font-size: 26px; cursor: pointer; }
 
-#header p {
-    margin: 5px 0 0 0;
-    font-size: 14px;
-    color: #666;
-}
+/* Main area: map + controls + plot */
+#main { display: flex; flex-direction: column; flex: 1; }
 
-#header strong {
-    color: #007bff;
-}
-
-/* ================================================================= */
-/* Map Container */
-/* ================================================================= */
-#map {
-    height: 100%;
-    width: 100%;
-}
-
+/* Map container - uses flex to fill available vertical space */
 #map-container {
-    height: calc(100vh - 10vh - 78px);
-    width: 100%;
-    position: relative;
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 300px;
 }
 
-/* ================================================================= */
-/* Selected Zones Panel */
-/* ================================================================= */
-#selected-zones-panel {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    max-width: 300px;
-    max-height: 400px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
+/* Leaflet needs an element with definite height; the flex rule gives that */
+#map, #map-3d {
+  height: 100%;
+  width: 100%;
 }
 
-#selected-zones-list {
-    padding: 10px;
-    overflow-y: auto;
-    max-height: 300px;
-}
-
-.no-selection {
-    color: #999;
-    font-style: italic;
-    font-size: 13px;
-    padding: 10px;
-    text-align: center;
-}
-
-.selected-zones-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.clear-all-btn {
-    padding: 4px 10px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 500;
-}
-
-.clear-all-btn:hover {
-    background: #c82333;
-}
-
-.selected-zones-items {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px 0;
-}
-
-.selected-zone-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 10px;
-    background: #e7f3ff;
-    border-left: 3px solid #FFD700;
-    border-radius: 4px;
-    font-size: 13px;
-}
-
-.zone-name {
-    font-weight: 500;
-    color: #333;
-}
-
-.remove-zone-btn {
-    background: none;
-    border: none;
-    color: #dc3545;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-
-.remove-zone-btn:hover {
-    color: #a71d2a;
-    transform: scale(1.2);
-}
-
-#csv-output-container {
-    padding: 10px;
-    border-top: 1px solid #dee2e6;
-    background: #f8f9fa;
-}
-
-.csv-download-btn {
-    display: block;
-    width: 100%;
-    padding: 8px 12px;
-    background: #28a745;
-    color: white;
-    text-decoration: none;
-    text-align: center;
-    border-radius: 4px;
-    font-weight: 500;
-    font-size: 13px;
-    transition: background 0.2s;
-}
-
-.csv-download-btn:hover {
-    background: #218838;
-}
-
-/* ================================================================= */
-/* Controls Container */
-/* ================================================================= */
+/* Controls - fixed height */
 #controls-container {
-    height: 10vh;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #fff;
-    border-top: 1px solid #ccc;
-    padding: 0 20px;
-    gap: 15px;
+  height: 10vh;
+  min-height: 56px;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
 }
 
-.info {
-    padding: 6px 8px;
-    font: 14px/16px Arial, Helvetica, sans-serif;
+/* Selected zones panel (floating on map) */
+#selected-zones-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  max-width: 320px;
+  max-height: 420px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#selected-zones-list { padding: 10px; overflow-y: auto; max-height: 300px; }
+.csv-download-btn { display:block; padding: 8px 12px; text-align:center; background:#28a745; color:white; border-radius:6px; text-decoration:none; }
+
+/* ============================
+   Plot Container (rewritten)
+   ============================ */
+/* Hidden by default (no inline-style string matching required) */
+#plot-container {
+  background: white;
+  border-top: 2px solid #007bff;
+  padding: 12px 16px;
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.25s ease;
+}
+
+/* When open, give enough space for chart or table; change as needed */
+#plot-container.open {
+  max-height: 600px;
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+/* header inside plot */
+#plot-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+#plot-controls { display:flex; gap:8px; align-items:center; }
+
+/* buttons */
+.plot-btn {
+  padding: 8px 12px;
+  background: #007bff;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+.plot-btn[aria-pressed="true"] { background: #0056b3; }
+
+/* content area */
+#plot-content { width: 100%; margin-top: 8px; }
+#observable-plot { width: 100%; overflow-x: auto; background: white; border-radius: 4px; }
+
+/* table styles */
+.data-table-container { max-height: 420px; overflow-y: auto; border: 1px solid #e6e6e6; border-radius: 6px; padding: 6px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th, .data-table td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; }
+.data-table thead { position: sticky; top: 0; background: #fafafa; z-index: 5; }
+
+/* small helpers */
+.plot-message { padding: 32px 16px; text-align:center; color:#666; font-style:italic; }
+.plot-error { padding: 16px; background:#fdecea; color:#7a1b1b; border-radius:6px; }
+
+/* responsive: smaller height for small screens */
+@media (max-width: 800px) {
+  #plot-container.open { max-height: 420px; }
+  #controls-container { height: 64px; }
+}
+
+/* ================================================================= */
+/* Observable Plot Integration */
+/* ================================================================= */
+
+/* Adjust map container when plot is visible */
+body.plot-visible #map-container {
+    height: calc(100vh - 10vh - 78px - 300px);
+}
+
+/* Plot Container */
+#plot-container {
     background: white;
-    background: rgba(255,255,255,0.8);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
-    border-radius: 5px;
+    border-top: 2px solid #007bff;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
-.info h4 {
-    margin: 0 0 5px;
-    color: #777;
+#plot-container.visible {
+    max-height: 600px;
+    padding: 15px 20px;
+    overflow-y: auto;
 }
 
-#hour-slider {
-    flex: 1;
-    margin: 0 20px;
+#plot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-#play-pause-button, #current-time-display {
-    font-size: 16px;
+#plot-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
 }
 
-#play-pause-button {
+#plot-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.plot-btn {
     padding: 8px 16px;
     background: #007bff;
     color: white;
@@ -226,377 +221,92 @@ html, body {
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s;
 }
 
-#play-pause-button:hover {
+.plot-btn:hover {
     background: #0056b3;
 }
 
-#current-time-display {
-    font-weight: bold;
-    min-width: 420px; 
-    text-align: center;
+#plot-content {
+    margin-top: 10px;
 }
 
-/* ================================================================= */
-/* Zone Labels */
-/* ================================================================= */
-.zone-label {
-    text-align: center;
-    font-weight: bold;
-    font-size: 12px;
-    color: white;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-}
-
-.zone-label span {
-    display: inline-block;
-    background-color: #808080;
-    padding: 0px 4px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    transition: background-color 0.3s ease;
-}
-
-/* ================================================================= */
-/* Legend */
-/* ================================================================= */
-.legend {
-    margin-top: 60px !important;
-}
-
-.legend h4 {
-    margin-top: 0;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.legend-item i {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    opacity: 0.8;
-    border: 1px solid rgba(0,0,0,0.2);
-}
-
-.legend-hr {
-    border: 0;
-    border-top: 1px solid #ccc;
-    margin: 8px 0;
-}
-
-/* ================================================================= */
-/* Filter Panel */
-/* ================================================================= */
-#filter-panel {
-    position: fixed;
-    top: 0;
-    right: -450px;
-    width: 450px;
-    height: 100vh;
+#observable-plot {
+    width: 100%;
+    overflow-x: auto;
     background: white;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
-    transition: right 0.3s ease;
-    z-index: 1001;
-    overflow-y: auto;
+    border-radius: 4px;
+    min-height: 300px;
+}
+
+/* Plot message styles */
+.plot-message {
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+    font-size: 16px;
+    font-style: italic;
+}
+
+.plot-error {
     padding: 20px;
-}
-
-#filter-panel.open {
-    right: 0;
-}
-
-#filter-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    padding: 10px 20px;
-    background: #007bff;
-    color: white;
-    border: none;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
     border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-#filter-toggle:hover {
-    background: #0056b3;
-}
-
-#filter-panel h3 {
-    margin: 0 0 20px 0;
-    color: #333;
-}
-
-.filter-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.filter-section h4 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    color: #555;
-}
-
-.date-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.date-input-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.date-input-row label {
-    font-weight: 500;
-    min-width: 50px;
-}
-
-.date-input-row input[type="date"] {
-    flex: 1;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.days-container {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.day-button {
-    padding: 8px 12px;
-    border: 2px solid #007bff;
-    border-radius: 20px;
-    background: white;
-    color: #007bff;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
-    font-size: 12px;
-}
-
-.day-button.active {
-    background: #007bff;
-    color: white;
-}
-
-.day-button:hover {
-    opacity: 0.8;
-}
-
-.apply-filter-btn {
-    width: 100%;
-    padding: 12px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-
-.apply-filter-btn:hover {
-    opacity: 0.9;
-}
-
-.saved-filters {
-    margin-top: 20px;
-}
-
-.saved-filters h4 {
-    margin-bottom: 10px;
-    color: #555;
-}
-
-#saved-filters-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.saved-filter-item {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 12px;
-}
-
-.saved-filter-header {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.saved-filter-details {
-    font-size: 12px;
-    color: #666;
-    line-height: 1.6;
-    margin-bottom: 10px;
-}
-
-.saved-filter-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.saved-filter-buttons button {
-    flex: 1;
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.load-btn {
-    background: #007bff;
-    color: white;
-}
-
-.load-btn:hover {
-    background: #0056b3;
-}
-
-.delete-btn {
-    background: #dc3545;
-    color: white;
-}
-
-.delete-btn:hover {
-    background: #c82333;
-}
-
-#close-filter {
-    float: right;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-    line-height: 1;
-}
-
-#close-filter:hover {
-    color: #000;
-}
-
-.custom-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-/* ================================================================= */
-/* View Toggle Button */
-/* ================================================================= */
-#view-toggle {
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    z-index: 1000;
-    padding: 10px 20px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    font-size: 14px;
-}
-
-#view-toggle:hover {
-    background: #218838;
-}
-
-/* ================================================================= */
-/* 3D Map Container */
-/* ================================================================= */
-#map-3d {
-    height: 100%;
-    width: 100%;
-    display: none;
-}
-
-/* Mapbox popup dark theme */
-.mapboxgl-popup-content {
-    background: rgba(40, 40, 40, 0.9) !important;
-    color: white !important;
-    font-family: Arial, Helvetica, sans-serif;
-    padding: 10px !important;
-    border-radius: 5px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
-}
-
-.mapboxgl-popup-content strong {
-    color: #66c2a5;
-}
-
-.mapboxgl-popup-close-button {
-    color: white !important;
-}
-
-/* Mapbox 3D Zone Labels */
-.mapbox-zone-label {
     text-align: center;
-    font-weight: bold;
-    font-size: 11px;
-    color: white;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-    white-space: nowrap;
-    pointer-events: none;
-    background-color: rgba(128, 128, 128, 0.7);
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    margin: 10px 0;
 }
 
-/* Mapbox legend styles */
-.mapboxgl-ctrl.info.legend {
-    padding: 10px;
-    font: 14px/16px Arial, Helvetica, sans-serif;
-    background: rgba(40, 40, 40, 0.9);
-    color: #fff;
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
-    border-radius: 5px;
-}
-
-.mapboxgl-ctrl.info.legend h4 {
-    margin: 0 0 10px;
-    color: #ccc;
-}
-
-.mapboxgl-ctrl.info.legend .legend-item {
+/* Table actions */
+.table-actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
     display: flex;
-    align-items: center;
-    margin-bottom: 4px;
+    gap: 10px;
+    justify-content: flex-start;
 }
 
-.mapboxgl-ctrl.info.legend .legend-item i {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    opacity: 0.9;
-    border: 1px solid rgba(100,100,100,0.3);
+/* Observable Plot table styling */
+#observable-plot table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 0;
+}
+
+#observable-plot thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+}
+
+#observable-plot th {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    background: #f8f9fa;
+}
+
+#observable-plot td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#observable-plot tbody tr:hover {
+    background: #f8f9fa;
+}
+
+#observable-plot tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+#observable-plot tbody tr:nth-child(even):hover {
+    background: #f1f3f5;
 }

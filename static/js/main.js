@@ -18,7 +18,7 @@ const App = {
         TimeSlider.init();
         Animation.init();
         MapUtils.createLegend();
-        ViewToggle.init(); // Initialize view toggle
+        ObservablePlot.init(); // Initialize Observable Plot
 
         // 3. Load initial data based on the default filter state.
         API.fetchZoneShapes().then(() => {

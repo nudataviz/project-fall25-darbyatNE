@@ -26,7 +26,7 @@ const API = {
         }
     },
 
-    async fetchLmpData(filter = State.currentFilter) { // Changed: Added default parameter
+    async fetchLmpData(filter = State.currentFilter) {
         const timeDisplay = document.getElementById('current-time-display');
         timeDisplay.innerText = "Loading LMP data...";
         

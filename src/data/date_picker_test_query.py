@@ -4,7 +4,7 @@ import json
 import pandas as pd
 
 sys.path.append('src/data')
-from db_query import query_electric_data
+from db_query_test import query_electric_data
 
 parser = argparse.ArgumentParser(description="Test script for the query_electric_data function.")
 parser.add_argument("--table_name", required=True, help="The name of the database table.")

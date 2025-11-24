@@ -12,13 +12,12 @@ html: |
   <div id="zone-list-container">
     <h4>PJM Zones</h4>
     <div id="zone-list">
-      <!-- Zone names will be dynamically inserted here -->
+      <!-- Zone names dyn add -->
     </div>
   </div>
 </div>
 
 <style>
-  /* CSS is unchanged */
   #main-container {
     display: flex;
     width: 1120px;
@@ -77,12 +76,13 @@ html: |
 </style>
 
 ```js
-// JavaScript updated to handle zone selection opacity
 import maplibregl from "npm:maplibre-gl";
 import * as d3 from "npm:d3";
 
+// Load shape file
 const zoneShapes = await FileAttachment("data/PJM_zones.geojson").json();
 
+// Initialize map
 const map = new maplibregl.Map({
   container: "map",
   zoom: 5,
@@ -93,7 +93,6 @@ const map = new maplibregl.Map({
 });
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
-
 map.on('load', () => {
   map.addSource('zoneShapes', { type: 'geojson', data: zoneShapes });
   map.addLayer({ 
@@ -102,64 +101,87 @@ map.on('load', () => {
     source: 'zoneShapes', 
     paint: { 
       "fill-color": '#088', 
-      "fill-opacity": 0.1 // Default opacity
+      "fill-opacity": 0.1
     } 
   });
-  map.addLayer({ id: 'zoneLines', type: 'line', source: 'zoneShapes', paint: { "line-color": '#000', "line-width": 1.5 } });
+  map.addLayer({ 
+    id: 'zoneLines', 
+    type: 'line', 
+    source: 'zoneShapes', 
+    paint: { "line-color": '#000', "line-width": 1.5 } 
+  });
 
-  if (zoneShapes && zoneShapes.features) {
-    const zones = zoneShapes.features.map(feature => {
-      const zoneName = (feature.properties && feature.properties.Zone_Name) ? feature.properties.Zone_Name : 'Unnamed Zone';
-      return {
-        name: zoneName,
-        center: d3.geoCentroid(feature)
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-
-    zones.unshift({ name: "PJM" });
-
-    const zoneListElement = document.getElementById('zone-list');
-    zoneListElement.innerHTML = '';
-
-    zones.forEach(zone => {
-      const item = document.createElement('div');
-      item.className = 'zone-item';
-      item.textContent = zone.name;
-      item.dataset.zoneName = zone.name;
-      zoneListElement.appendChild(item);
-    });
-
-    zoneListElement.addEventListener('click', (event) => {
-      if (event.target && event.target.classList.contains('zone-item')) {
-        const selectedZoneName = event.target.dataset.zoneName;
-
-        const previouslySelected = zoneListElement.querySelector('.selected');
-        if (previouslySelected) {
-          previouslySelected.classList.remove('selected');
-        }
-        event.target.classList.add('selected');
-        
-        if (selectedZoneName === 'PJM') {
-          map.flyTo({ center: [-80.45, 38.6], zoom: 5, pitch: 10, essential: true });
-          // Reset opacity for all zones
-          map.setPaintProperty('zoneFill', 'fill-opacity', 0.1);
-        } else {
-          const selectedZone = zones.find(z => z.name === selectedZoneName);
-          if (selectedZone) {
-            map.flyTo({ center: selectedZone.center, zoom: 6, pitch: 20, essential: true });
-            // Highlight selected zone by increasing its opacity
-            map.setPaintProperty('zoneFill', 'fill-opacity', [
-              'case',
-              ['==', ['get', 'Zone_Name'], selectedZoneName],
-              0.3, // Opacity for the selected zone (increased by 20%)
-              0.1  // Default opacity for all other zones
-            ]);
-          }
-        }
-      }
-    });
-  } else {
+  if (!zoneShapes || !zoneShapes.features) {
     console.error("Could not find any 'features' in the GeoJSON data.");
+    return;
   }
+
+  // prepare zones, get centers
+  const zones = zoneShapes.features.map(feature => {
+    const zoneName = (feature.properties && feature.properties.Zone_Name) ? feature.properties.Zone_Name : 'Unnamed Zone';
+    return {
+      name: zoneName,
+      center: d3.geoCentroid(feature)
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+
+  zones.unshift({ name: "PJM" }); // unzoom to PJM view
+
+  // add zone names to list
+  const zoneListElement = document.getElementById('zone-list');
+  zoneListElement.innerHTML = '';
+  zones.forEach(zone => {
+    const item = document.createElement('div');
+    item.className = 'zone-item';
+    item.textContent = zone.name;
+    item.dataset.zoneName = zone.name;
+    zoneListElement.appendChild(item);
+  });
+
+  // select zone and style
+  function selectZone(selectedZoneName) {
+ 
+    const previouslySelected = zoneListElement.querySelector('.selected');
+    if (previouslySelected) {
+      previouslySelected.classList.remove('selected');
+    }
+    const newSelectedItem = zoneListElement.querySelector(`.zone-item[data-zone-name="${selectedZoneName}"]`);
+    if (newSelectedItem) {
+      newSelectedItem.classList.add('selected');
+    }
+    
+    // Update map
+    if (selectedZoneName === 'PJM') {
+      map.flyTo({ center: [-80.45, 38.6], zoom: 5, pitch: 10, essential: true });
+      map.setPaintProperty('zoneFill', 'fill-opacity', 0.1);
+    } else {
+      const selectedZone = zones.find(z => z.name === selectedZoneName);
+      if (selectedZone) {
+        map.flyTo({ center: selectedZone.center, zoom: 6.5, pitch: 20, essential: true });
+        map.setPaintProperty('zoneFill', 'fill-opacity', [
+          'case',
+          ['==', ['get', 'Zone_Name'], selectedZoneName],
+          0.4, 
+          0.1
+        ]);
+      }
+    }
+  }
+  
+  // Listener for the zone list clcks
+  zoneListElement.addEventListener('click', (event) => {
+    if (event.target && event.target.classList.contains('zone-item')) {
+      const selectedZoneName = event.target.dataset.zoneName;
+      selectZone(selectedZoneName);
+    }
+  });
+
+  // Listener for clicks on map
+  map.on('click', 'zoneFill', (e) => {
+    if (e.features.length > 0) {
+      const clickedZoneName = e.features[0].properties.Zone_Name;
+      selectZone(clickedZoneName);
+    }
+  });
 });
 ```

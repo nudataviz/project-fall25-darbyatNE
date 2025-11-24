@@ -1,6 +1,1 @@
-# Ignore the Python cache directory
-__pycache__/
-
-# Ignore miscellaneous files directory
-misc/
-Miniconda3-latest-Linux-x86_64.sh
+/hello-lmp

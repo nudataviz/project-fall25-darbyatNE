@@ -80,7 +80,7 @@ import maplibregl from "npm:maplibre-gl";
 import * as d3 from "npm:d3";
 
 // Load shape file
-const zoneShapes = await FileAttachment("data/PJM_zones.geojson").json();
+const zoneShapes = await FileAttachment("data/zones.json").json();
 
 // Initialize map
 const map = new maplibregl.Map({

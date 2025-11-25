@@ -1,5 +1,19 @@
 {
+  "name": "pjm-lmp-observable",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "observable preview",
+    "build": "observable build",
+    "deploy": "observable deploy"
+  },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "@observablehq/framework": "latest"
+  },
+  "dependencies": {
+    "d3": "^7.8.5",
+    "leaflet": "^1.9.4",
+    "maplibre-gl": "^4.0.0",
+    "mysql2": "^3.6.5"
   }
 }

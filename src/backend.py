@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 import collections
@@ -22,12 +20,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/", include_in_schema=False)
-async def root():
-    return FileResponse("index3.html")
 
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
@@ -87,8 +79,6 @@ def get_zones(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 # Dynamic LMP Query Endpoint
-# In your Python script
-
 @app.post("/api/lmp/range")
 def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     try:
@@ -169,7 +159,6 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
         rows = lmp_result.fetchall() # Fetch all rows first
         
         if not rows:
-            # If there are no rows, raise a 404 error that FastAPI will correctly send to the browser
             raise HTTPException(status_code=404, detail="No LMP data found for the specified criteria.")
 
         for row in rows:
@@ -182,11 +171,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
         return lmp_data_by_zone
 
     except ValueError:
-        # This catches errors from datetime.strptime
         raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD.")
     except Exception as e:
-        # This is a catch-all for truly unexpected errors (e.g., database connection failure)
         print(f"An unexpected server error occurred while fetching LMP data: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred processing your request.")
-
-

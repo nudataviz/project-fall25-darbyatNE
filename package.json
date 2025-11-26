@@ -2,18 +2,28 @@
   "name": "pjm-lmp-observable",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "observable preview",
+    "dev:frontend": "observable preview",
+    "dev:backend": "uvicorn src.backend:app --reload",
+    "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "clean": "rimraf src/.observablehq/cache",
     "build": "observable build",
-    "deploy": "observable deploy"
-  },
-  "devDependencies": {
-    "@observablehq/framework": "latest"
+    "deploy": "observable deploy",
+    "observable": "observable"
   },
   "dependencies": {
     "d3": "^7.8.5",
     "leaflet": "^1.9.4",
     "maplibre-gl": "^4.0.0",
     "mysql2": "^3.6.5"
+  },
+  "devDependencies": {
+    "@observablehq/framework": "latest",
+    "concurrently": "^9.2.1",
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

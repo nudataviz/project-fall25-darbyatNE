@@ -16,8 +16,8 @@ export function dateTimeRangePicker(options = {}) {
     .style("max-width", `${width}px`);
 
   // State management
-  let startTime = initialStartTime;
-  let endTime = initialEndTime;
+  let startTime = Math.round(initialStartTime);
+  let endTime = Math.round(initialEndTime);
   let startDate = new Date(initialStartDate);
   let endDate = new Date(initialEndDate);
   let daysOfWeek = [...initialDaysOfWeek];
@@ -145,11 +145,9 @@ export function dateTimeRangePicker(options = {}) {
   const margin = { top: 20, right: 20, bottom: 30, left: 20 };
   const innerWidth = svgWidth - margin.left - margin.right;
   const innerHeight = svgHeight - margin.top - margin.bottom;
-
   const svg = timeSection.append("svg")
     .attr("width", svgWidth)
     .attr("height", svgHeight);
-
   const g = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -189,41 +187,41 @@ export function dateTimeRangePicker(options = {}) {
   // Create draggable handles
   const handleRadius = 10;
   
-  const startHandle = g.append("circle")
-    .attr("cy", innerHeight / 2)
-    .attr("r", handleRadius)
-    .attr("fill", "#007bff")
-    .attr("stroke", "white")
-    .attr("stroke-width", 2)
-    .attr("cursor", "ew-resize")
-    .call(d3.drag()
-      .on("drag", function(event) {
-        const x = Math.max(0, Math.min(innerWidth, event.x));
-        const newTime = timeScale.invert(x);
-        if (newTime < endTime) {
-          startTime = newTime;
-          updateTimeSlider();
-          updateDisplay();
-        }
-      }));
+const startHandle = g.append("circle")
+  .attr("cy", innerHeight / 2)
+  .attr("r", handleRadius)
+  .attr("fill", "#007bff")
+  .attr("stroke", "white")
+  .attr("stroke-width", 2)
+  .attr("cursor", "ew-resize")
+  .call(d3.drag()
+    .on("drag", function(event) {
+      const x = Math.max(0, Math.min(innerWidth, event.x));
+      const newTime = Math.round(timeScale.invert(x)); // Snap to whole hour
+      if (newTime < endTime) {
+        startTime = newTime;
+        updateTimeSlider();
+        updateDisplay();
+      }
+    }));
 
-  const endHandle = g.append("circle")
-    .attr("cy", innerHeight / 2)
-    .attr("r", handleRadius)
-    .attr("fill", "#007bff")
-    .attr("stroke", "white")
-    .attr("stroke-width", 2)
-    .attr("cursor", "ew-resize")
-    .call(d3.drag()
-      .on("drag", function(event) {
-        const x = Math.max(0, Math.min(innerWidth, event.x));
-        const newTime = timeScale.invert(x);
-        if (newTime > startTime) {
-          endTime = newTime;
-          updateTimeSlider();
-          updateDisplay();
-        }
-      }));
+const endHandle = g.append("circle")
+  .attr("cy", innerHeight / 2)
+  .attr("r", handleRadius)
+  .attr("fill", "#007bff")
+  .attr("stroke", "white")
+  .attr("stroke-width", 2)
+  .attr("cursor", "ew-resize")
+  .call(d3.drag()
+    .on("drag", function(event) {
+      const x = Math.max(0, Math.min(innerWidth, event.x));
+      const newTime = Math.round(timeScale.invert(x)); // Snap to whole hour
+      if (newTime > startTime) {
+        endTime = newTime;
+        updateTimeSlider();
+        updateDisplay();
+      }
+    }));
 
   function updateTimeSlider() {
     const x1 = timeScale(startTime);
@@ -283,9 +281,8 @@ export function dateTimeRangePicker(options = {}) {
   }
 
   function formatTime(hours) {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    // Since hours are now integers (whole numbers), just output HH:00
+    return `${Math.floor(hours).toString().padStart(2, '0')}:00`;
   }
 
   function getCurrentFilter() {

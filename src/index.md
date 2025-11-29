@@ -29,6 +29,11 @@
     <div id="controls-container">
       <button id="filter-btn">Filter</button>
       <button id="avg-btn">Avg View</button>
+      <!-- Playback Speed Slider -->
+      <div id="speed-box">
+          <label>Speed</label>
+          <input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000" title="Playback Speed (ms)">
+      </div>
       <button id="play-btn">Play</button>
       <input type="range" id="slider" min="0" max="1" value="0" style="flex-grow: 1; margin: 0 10px;">
       <div id="time-display">Ready</div>
@@ -47,7 +52,6 @@
       <div class="constraint-header-wrapper">
           <h4>Active Constraints</h4>
           <div class="c-toggle-container">
-              <!-- Inputs are now DISABLED (Read-Only Indicators) -->
               <label>
                   <input type="radio" name="c-mode" value="global" checked disabled> Period Avg
               </label>
@@ -63,8 +67,8 @@
   </div>
 </div>
 
+<!-- CSS Styling Begins -->
 <style>
-  /* FRAMEWORK OVERRIDES */
   :root {
     --max-width: 100% !important; 
   }
@@ -76,7 +80,6 @@
     width: 100% !important;
   }
 
-  /* GLOBAL LAYOUT */
   #page-header {
     width: 100%;
     margin: 0;         
@@ -123,7 +126,6 @@
     white-space: nowrap;
   }
 
-  /* PRICE SELECTOR */
   .price-label {
     padding: 8px 16px;
     background-color: #e0e0e0; 
@@ -142,7 +144,7 @@
   .price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
   .price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
 
-  /* MAIN CONTAINER & MAP */
+  /* Container & Map */
   #main-container { 
     display: flex; 
     width: 100%;      
@@ -168,9 +170,30 @@
     font-size: 13px;
   }
 
+  /* Playback Speed Styling */
+  #speed-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    margin-right: 5px;
+  }
+  #speed-box label {
+    font-size: 9px;
+    color: #666;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  #speed-slider {
+    width: 100%;
+    cursor: pointer;
+    height: 5px;
+  }
+
   #time-display { font-size: 16px; min-width: 150px; text-align: right; }
   
-  /* SIDEBAR LAYOUT */
+  /* Sidebar Layout */
   #sidebar {
     width: 310px; 
     height: 100%;
@@ -196,7 +219,7 @@
     overflow: hidden;
   }
 
-  /* HEADERS & LISTS */
+  /* Headers & Lists */
   h4 {
     height: 30px;
     padding: 0 10px;
@@ -213,12 +236,12 @@
   }
 
   #zone-section h4 {
-    height: 60px; 
+    height: 47px; 
     border-bottom: 1px solid #ccc;
   }
 
   .constraint-header-wrapper {
-    height: 61px;             
+    height: 48px;             
     box-sizing: border-box;   
     background-color: #e9ecef;
     border-bottom: 1px solid #ccc;
@@ -238,7 +261,6 @@
     width: 100%;
   }
 
-  /* Constraint Toggles - Indicators Only */
   .c-toggle-container {
     display: flex;
     justify-content: center;
@@ -247,29 +269,26 @@
     z-index: 5;         
   }
   .c-toggle-container label {
-    /* Cursor default since they are disabled */
     cursor: default; 
     display: flex;
     align-items: center;
     gap: 3px;
-    opacity: 1; /* Keep text readable even if input is disabled */
+    opacity: 1; 
   }
-  /* Make the checked radio button blue even if disabled */
   .c-toggle-container input[type="radio"]:checked {
       accent-color: #007bff;
   }
 
-  /* Lists */
   #zone-list, #constraint-list {
     flex: 1;
     overflow-y: auto;
-    background: #e0e0e0; 
+    background: #6f726dff; 
   }
   
   .zone-item, .constraint-row {
-    padding: 3px 2px; 
+    padding: 2.5px 2px; 
     border-bottom: 1px solid #ccc;
-    font-size: 11px;
+    font-size: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -277,7 +296,7 @@
   
   .zone-item { cursor: pointer; }
   .zone-item:hover { background-color: #e2e6ea; }
-  .zone-item.selected { background-color: #007bff; color: white; font-weight: bold; }
+  .zone-item.selected { background-color: #afb7c0ff; color: white; font-weight: bold; }
   .zone-item .zone-price { font-weight: bold; min-width: 40px; text-align: right; }
 
   .constraint-row .c-name {
@@ -289,9 +308,9 @@
   }
   .constraint-row .c-price {
     font-weight: bold;
-    color: #d32f2f;
+    color: #2f37d3ff;
     white-space: nowrap;
-    font-size: 10px;
+    font-size: 14px;
   }
   .empty-state {
     padding: 15px;
@@ -301,13 +320,12 @@
     font-size: 11px;
   }
 
-  /* LEGEND */
   #legend {
     display: none;
     position: absolute;
     bottom: 50px;        
     left: 10px;         
-    width: 90px;       
+    width: 120px;       
     max-height: 300px;
     overflow-y: auto;
     background-color: rgba(255, 255, 255, 0.95);
@@ -345,8 +363,9 @@
   }
 </style>
 
-
+ 
 ```js
+// JS Code begins
 import maplibregl from "npm:maplibre-gl";
 import * as d3 from "npm:d3";
 import { filter } from "./lib/filter.js";
@@ -364,11 +383,13 @@ let selectedZoneName = null;
 let globalConstraintCache = []; 
 let isAverageMode = false; 
 let averageDataCache = {}; 
+let playbackSpeed = 1000;
 
 // DOM Elements
 const playBtn = document.getElementById('play-btn');
 const avgBtn = document.getElementById('avg-btn'); 
 const slider = document.getElementById('slider');
+const speedSlider = document.getElementById('speed-slider'); 
 const filterBtn = document.getElementById('filter-btn');
 const timeDisplay = document.getElementById('time-display');
 const zoneListElement = document.getElementById('zone-list');
@@ -398,7 +419,7 @@ function renderConstraintList(listItems, labelType) {
             </div>
             <div style="text-align: right;">
                 <div class="c-price">$${item.price.toFixed(2)}</div>
-                <div style="font-size: 9px; color: #999;">${labelType}</div>
+                <div style="font-size: 9px; color: #000000;">${labelType}</div>
             </div>
         </div>
     `).join('');
@@ -451,13 +472,13 @@ function calculateZoneAverages() {
     return averages;
 }
 
-// Render the Average View
+// Render the Average Price View
 function renderAverageView() {
     isAverageMode = true;
     timeDisplay.innerText = 'Period Average';
     slider.value = 0; 
     
-    // 1. Set Constraint Mode to Global
+    // Set Constraint View Mode
     setConstraintModeUI('global');
     renderConstraintList(globalConstraintCache, 'Avg/Hr');
 
@@ -468,7 +489,7 @@ function renderAverageView() {
     const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
 
-    // 2. Update Map Colors
+    // Update Map Colors
     for (const zone in averageDataCache) {
         const val = averageDataCache[zone][activePriceType];
         colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
@@ -479,7 +500,7 @@ function renderAverageView() {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // 3. Calculate PJM Average (Average of all Zone Averages)
+    // Calculate Avg of PJM Zones
     let pjmSum = 0;
     let pjmCount = 0;
     Object.values(averageDataCache).forEach(z => {
@@ -490,7 +511,7 @@ function renderAverageView() {
     });
     const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
 
-    // 4. Update Sidebar List
+    // Sidebar List
     document.querySelectorAll('.zone-item').forEach(item => {
         const zName = item.dataset.zoneName;
         const priceSpan = item.querySelector('.zone-price');
@@ -558,14 +579,14 @@ async function fetchLmpData() {
         }
         const totalHours = timeSeriesData.length;
         
-        // Calculate Global Constraints
+        // Constraints
         globalConstraintCache = calculateGlobalStats(constraintsData, totalHours);
 
         slider.max = timeSeriesData.length - 1;
         slider.disabled = false;
         playBtn.disabled = false;
         
-        // Render Average View Initially
+        // Render Average Price View Initially
         averageDataCache = calculateZoneAverages(); 
         renderAverageView(); 
         
@@ -576,7 +597,7 @@ async function fetchLmpData() {
     }
 }
 
-// Animation (Specific Hour)
+// Animation
 function updateAnimation(index) {
     isAverageMode = false; 
     currentIndex = index;
@@ -597,7 +618,7 @@ function updateAnimation(index) {
 
     timeDisplay.innerText = `${dateStr} | ${hourStr}`;
 
-    // 1. Update Map
+    // Update Map Zone Colors
     const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
     for (const zone in data.readings) {
@@ -610,7 +631,7 @@ function updateAnimation(index) {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // 2. Calculate PJM Average for this specific hour
+    // Calculate PJM Average for current hour
     let pjmSum = 0;
     let pjmCount = 0;
     Object.values(data.readings).forEach(r => {
@@ -621,7 +642,7 @@ function updateAnimation(index) {
     });
     const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
 
-    // 3. Update Sidebar: ZONES
+    // Update Sidebar: PJM Zones
     document.querySelectorAll('.zone-item').forEach(item => {
         const zName = item.dataset.zoneName;
         const priceSpan = item.querySelector('.zone-price');
@@ -643,12 +664,11 @@ function updateAnimation(index) {
         }
     });
 
-    // 4. Update Constraints: Switch to Current Hour & Show Top 10
+    // Update Constraints: Switch to Current Hour & Show Top 10
     setConstraintModeUI('current');
     
     const currentLmpIso = data.datetime.replace(' ', 'T'); 
     const currentTs = new Date(currentLmpIso).getTime();
-    
     const activeConstraints = constraintsData.filter(c => {
         const constraintIso = c.timestamp.replace(' ', 'T'); 
         const constraintTs = new Date(constraintIso).getTime();
@@ -658,8 +678,8 @@ function updateAnimation(index) {
         name: c.name || c.monitored_facility,
         price: Number(c.shadow_price || 0)
     }))
-    .sort((a, b) => a.price - b.price) // Sort by price
-    .slice(0, 10); // Top 10
+    .sort((a, b) => a.price - b.price) 
+    .slice(0, 10); 
 
     renderConstraintList(activeConstraints, 'Shadow Price');
 }
@@ -783,7 +803,6 @@ map.on('load', async () => {
 });
 
 // Listeners
-
 zoneListElement.addEventListener('click', (e) => {
     const item = e.target.closest('.zone-item');
     if (!item) return;
@@ -793,10 +812,10 @@ zoneListElement.addEventListener('click', (e) => {
     const zData = zones.find(z => z.name === zName);
     
     if (zName === 'PJM') { 
-        map.flyTo({ center: [-81.5, 38.6], zoom: 4.8, pitch: 10 }); 
+        map.flyTo({ center: [-82, 38.6], zoom: 5.1, pitch: 10 }); 
     } 
     else if (zData) { 
-        map.flyTo({ center: zData.center, zoom: 5.7, pitch: 20 }); 
+        map.flyTo({ center: zData.center, zoom: 5.9, pitch: 20 }); 
         selectedZoneName = zName;
         if (map.getLayer('zoneLines')) {
             map.setPaintProperty('zoneLines', 'line-width', 
@@ -819,9 +838,27 @@ document.querySelector('.price-selector').addEventListener('change', (e) => {
     }
 });
 
+// Slider Logic
 slider.oninput = (e) => { 
     if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } 
     updateAnimation(parseInt(e.target.value)); 
+};
+
+// Animation Speed Logic
+speedSlider.oninput = (e) => {
+    playbackSpeed = parseInt(e.target.value);
+
+    if (timer) {
+        clearInterval(timer);
+        timer = setInterval(() => { 
+            const nextIndex = currentIndex + 1; 
+            if (nextIndex >= timeSeriesData.length) { 
+                clearInterval(timer); timer = null; playBtn.innerText = 'Play'; 
+            } else { 
+                updateAnimation(nextIndex); 
+            } 
+        }, playbackSpeed);
+    }
 };
 
 playBtn.onclick = () => {
@@ -836,7 +873,7 @@ playBtn.onclick = () => {
             } else { 
                 updateAnimation(nextIndex); 
             } 
-        }, 500); 
+        }, playbackSpeed); 
     }
 };
 
@@ -846,5 +883,4 @@ avgBtn.onclick = () => {
 };
 
 filterBtn.onclick = () => window.location.href = '/picker';
-
 ```

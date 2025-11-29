@@ -39,14 +39,14 @@ def get_db():
     finally:
         db.close()
 
-# MODIFIED: Removed 'price_type' from the query model
 class LmpRangeQuery(BaseModel):
     start_day: str
     end_day: str
     days_of_week: List[int]
-    hours: List[bool]
+    start_hour: int  # e.g., 15
+    end_hour: int    # e.g., 20 (exclusive upper bound)
 
-# PJM Zone Shapes Endpoint (Unchanged)
+# PJM Zone Shapes Endpoint
 @app.get("/api/zones")
 def get_zones(db: Session = Depends(get_db)):
     try:
@@ -72,14 +72,20 @@ def get_zones(db: Session = Depends(get_db)):
         print(f"An unexpected server error occurred while fetching zones: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
-# MODIFIED: This endpoint now fetches DA, RT, and calculates NET in a single query.
 @app.post("/api/lmp/range")
 def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     try:
-        selected_hours = [i for i, selected in enumerate(query.hours) if selected]
+        # Params
         params = {}
+        start_datetime_obj = datetime.strptime(query.start_day, '%Y-%m-%d')
+        end_datetime_obj = datetime.strptime(query.end_day, '%Y-%m-%d') + timedelta(days=1)
+        params["start_dt"] = start_datetime_obj
+        params["end_dt"] = end_datetime_obj
+        params["start_hour"] = query.start_hour
+        params["end_hour"] = query.end_hour
 
-        base_query_str = """
+        # LMP Query 
+        lmp_query_str = """
             SELECT
                 z.Transact_Z,
                 da.datetime_beginning_ept,
@@ -96,44 +102,72 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
             WHERE
                 da.datetime_beginning_ept >= :start_dt AND da.datetime_beginning_ept < :end_dt
+                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour
+                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour
         """
-        
-        start_datetime_obj = datetime.strptime(query.start_day, '%Y-%m-%d')
-        end_datetime_obj = datetime.strptime(query.end_day, '%Y-%m-%d') + timedelta(days=1)
-        params["start_dt"] = start_datetime_obj
-        params["end_dt"] = end_datetime_obj
-        
+
+        # Constraints Query
+        constraints_query_str = """
+            SELECT
+                DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') AS hour_beginning,
+                monitored_facility,
+                ROUND(SUM(shadow_price) / 12, 2) AS shadow_price
+            FROM
+                electric_data.pjm_binding_constraints
+            WHERE
+                datetime_beginning_ept >= :start_dt AND datetime_beginning_ept < :end_dt
+                AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour
+                AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour
+        """
+
+        # DOW Filters
         if query.days_of_week:
-            base_query_str += " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
+            lmp_query_str += " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
+            constraints_query_str += " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
+            
             params["days_of_week"] = tuple(query.days_of_week)
-        if selected_hours:
-            base_query_str += " AND EXTRACT(HOUR FROM da.datetime_beginning_ept) IN :selected_hours"
-            params["selected_hours"] = tuple(selected_hours)
 
-        base_query_str += " ORDER BY z.Transact_Z, da.datetime_beginning_ept;"
-        
-        lmp_query = text(base_query_str)
-        lmp_result = db.execute(lmp_query, params)
-        
+        # Order and Group
+        lmp_query_str += " ORDER BY z.Transact_Z, da.datetime_beginning_ept;"
+        constraints_query_str += " GROUP BY hour_beginning, monitored_facility ORDER BY hour_beginning, monitored_facility;"
+
+        # Execute Queries
+        lmp_result = db.execute(text(lmp_query_str), params)
+        constraints_result = db.execute(text(constraints_query_str), params)
+
+        # LMP Data
         lmp_data_by_zone = collections.defaultdict(list)
-        rows = lmp_result.fetchall()
+        lmp_rows = lmp_result.fetchall()
         
-        if not rows:
-            # Return an empty object instead of an error to prevent frontend from crashing
-            return {}
+        if lmp_rows:
+            for row in lmp_rows:
+                row_dict = row._asdict()
+                lmp_data_by_zone[row_dict['Transact_Z']].append({
+                    "datetime_beginning_ept": row_dict['datetime_beginning_ept'].isoformat(),
+                    "lmp_values": {
+                        "da": row_dict['lmp_da'],
+                        "rt": row_dict['lmp_rt'],
+                        "net": row_dict['lmp_net']
+                    }
+                })
 
-        for row in rows:
+        # Constraints Data
+        constraints_data = []
+        constraint_rows = constraints_result.fetchall()
+
+        for row in constraint_rows:
             row_dict = row._asdict()
-            lmp_data_by_zone[row_dict['Transact_Z']].append({
-                "datetime_beginning_ept": row_dict['datetime_beginning_ept'].isoformat(),
-                "lmp_values": { # NEW data structure
-                    "da": row_dict['lmp_da'],
-                    "rt": row_dict['lmp_rt'],
-                    "net": row_dict['lmp_net']
-                }
+            constraints_data.append({
+                "name": row_dict['monitored_facility'],
+                "timestamp": str(row_dict['hour_beginning']), 
+                "shadow_price": row_dict['shadow_price'] 
             })
 
-        return lmp_data_by_zone
+        # Response
+        return {
+            "zones": lmp_data_by_zone,
+            "constraints": constraints_data
+        }
 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD.")

@@ -20,35 +20,40 @@ const picker = dateTimeRangePicker({
 display(picker);
 ```
 
-## Current Filter Data
-
-This view will update in real-time as you change the picker settings.
-
 ```js
+const toDateStr = (d) => d instanceof Date ? d.toISOString().split('T')[0] : d;
 const currentFilter = view(
-  Inputs.input(picker.getCurrentFilter())
+  Inputs.input((() => {
+    const f = picker.getCurrentFilter();
+    return {
+      ...f,
+      startDate: toDateStr(f.startDate),
+      endDate: toDateStr(f.endDate)
+    };
+  })())
 );
 ```
-
 ```js
 const filterChanges = Generators.observe((change) => {
   function handleFilterChange(event) {
-    const newFilterState = event.detail;
+    const f = event.detail;
+    const newFilterState = {
+      ...f,
+      startDate: toDateStr(f.startDate),
+      endDate: toDateStr(f.endDate)
+    };
+
     saveFilter(newFilterState);
     change(newFilterState);
   }
-  // Listen
   picker.addEventListener('filterchange', handleFilterChange);
-  
-  // Cleanup 
   return () => picker.removeEventListener('filterchange', handleFilterChange);
 });
-```
 
+```
 ```js
 display(filterChanges);
 ```
-
 ```js
 // Listener 
 document.getElementById('apply-btn').addEventListener('click', () => {

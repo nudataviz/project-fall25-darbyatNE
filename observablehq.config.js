@@ -3,7 +3,7 @@
 
 export default {
   title: "PJM LMP Visualization",
-  
+  head: '<link rel="icon" href="/lib/favicon_lmp_32.png" type="image/png">',
   // Proxy API requests to backend
   proxy: {
     "/api": {

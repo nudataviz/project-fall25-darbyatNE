@@ -1,8 +1,5 @@
----
-html: |
-  <link rel="stylesheet" href="npm:maplibre-gl/dist/maplibre-gl.css">
-  <style> body { margin: 0; padding: 0; } </style>
----
+<link rel="stylesheet" href="npm:maplibre-gl/dist/maplibre-gl.css">
+<style> body { margin: 0; padding: 0; } </style>
 
 <div class="header-container">
   <h1>Interactive PJM LMP Map</h1>
@@ -25,13 +22,13 @@ html: |
   </div>
 </div>
 
-
 <div id="main-container">
   <div id="map-container">
     <div id="map"></div>
     <div id="legend"></div>
     <div id="controls-container">
       <button id="filter-btn">Filter</button>
+      <button id="avg-btn">Avg View</button>
       <button id="play-btn">Play</button>
       <input type="range" id="slider" min="0" max="1" value="0" style="flex-grow: 1; margin: 0 10px;">
       <div id="time-display">Ready</div>
@@ -50,11 +47,12 @@ html: |
       <div class="constraint-header-wrapper">
           <h4>Active Constraints</h4>
           <div class="c-toggle-container">
+              <!-- Inputs are now DISABLED (Read-Only Indicators) -->
               <label>
-                  <input type="radio" name="c-mode" value="global" checked> Period Avg
+                  <input type="radio" name="c-mode" value="global" checked disabled> Period Avg
               </label>
               <label>
-                  <input type="radio" name="c-mode" value="current"> Current Hour
+                  <input type="radio" name="c-mode" value="current" disabled> Current Hour
               </label>
           </div>
       </div>
@@ -148,7 +146,7 @@ html: |
   #main-container { 
     display: flex; 
     width: 100%;      
-    border: 1px solid #ccc; 
+    border: 3px solid #444; 
     border-radius: 5px; 
     font-family: sans-serif; 
     margin: 0;        
@@ -159,7 +157,17 @@ html: |
 
   #map-container { flex: 1; height: 100%; display: flex; flex-direction: column; position: relative; min-width: 0; }
   #map { height: calc(100% - 40px); width: 100%; }
+  
   #controls-container { height: 40px; display: flex; align-items: center; padding: 0 15px; border-top: 1px solid #ccc; background: #f8f9fa; gap: 10px; }
+  
+  /* Button Styling */
+  #controls-container button {
+    cursor: pointer;
+    padding: 4px 10px;
+    margin-right: 5px;
+    font-size: 13px;
+  }
+
   #time-display { font-size: 16px; min-width: 150px; text-align: right; }
   
   /* SIDEBAR LAYOUT */
@@ -189,8 +197,6 @@ html: |
   }
 
   /* HEADERS & LISTS */
-  
-  /* Generic Header Style */
   h4 {
     height: 30px;
     padding: 0 10px;
@@ -203,28 +209,16 @@ html: |
     text-align: center;
     font-size: 13px;
     color: #333;
-    flex-shrink: 0;
+    flex-shrink: 0; 
   }
 
-  /* Zone Header Override (Taller to match Constraint Header) */
   #zone-section h4 {
-    height: 62px;
+    height: 60px; 
     border-bottom: 1px solid #ccc;
   }
 
-  /* Constraint Header Wrapper (Replaces inline styles) */
   .constraint-header-wrapper {
-    background-color: #e9ecef;
-    border-bottom: 1px solid #ccc;
-    padding: 6.5px 5px; /* Padding adjusted to equal ~62px total height */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  /* Constraint Title */
-  .constraint-header-wrapper {
-    height: 63px;             
+    height: 61px;             
     box-sizing: border-box;   
     background-color: #e9ecef;
     border-bottom: 1px solid #ccc;
@@ -232,32 +226,49 @@ html: |
     display: flex;
     flex-direction: column;
     justify-content: center; 
+    flex-shrink: 0; 
   }
 
-  /* Constraint Toggles */
+  .constraint-header-wrapper h4 {
+    margin: 0;
+    border: none;
+    background: none;
+    padding-bottom: 2px;
+    height: auto;
+    width: 100%;
+  }
+
+  /* Constraint Toggles - Indicators Only */
   .c-toggle-container {
     display: flex;
     justify-content: center;
     gap: 10px;
     font-size: 10px;
+    z-index: 5;         
   }
   .c-toggle-container label {
-    cursor: pointer;
+    /* Cursor default since they are disabled */
+    cursor: default; 
     display: flex;
     align-items: center;
     gap: 3px;
+    opacity: 1; /* Keep text readable even if input is disabled */
+  }
+  /* Make the checked radio button blue even if disabled */
+  .c-toggle-container input[type="radio"]:checked {
+      accent-color: #007bff;
   }
 
   /* Lists */
   #zone-list, #constraint-list {
     flex: 1;
     overflow-y: auto;
-    background: white;
+    background: #e0e0e0; 
   }
   
   .zone-item, .constraint-row {
     padding: 3px 2px; 
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #ccc;
     font-size: 11px;
     display: flex;
     justify-content: space-between;
@@ -285,7 +296,7 @@ html: |
   .empty-state {
     padding: 15px;
     text-align: center;
-    color: #999;
+    color: #666;
     font-style: italic;
     font-size: 11px;
   }
@@ -296,7 +307,7 @@ html: |
     position: absolute;
     bottom: 50px;        
     left: 10px;         
-    width: 120px;       
+    width: 90px;       
     max-height: 300px;
     overflow-y: auto;
     background-color: rgba(255, 255, 255, 0.95);
@@ -350,16 +361,25 @@ let currentIndex = 0;
 let timer = null;
 let activePriceType = 'da';
 let selectedZoneName = null; 
-let activeConstraintMode = 'global'; // Currently Displayed Hour Const
-let globalConstraintCache = []; // Mos Active 10 Const
+let globalConstraintCache = []; 
+let isAverageMode = false; 
+let averageDataCache = {}; 
 
 // DOM Elements
 const playBtn = document.getElementById('play-btn');
+const avgBtn = document.getElementById('avg-btn'); 
 const slider = document.getElementById('slider');
 const filterBtn = document.getElementById('filter-btn');
 const timeDisplay = document.getElementById('time-display');
 const zoneListElement = document.getElementById('zone-list');
 const constraintListElement = document.getElementById('constraint-list');
+
+// Helper: Update the Radio Button UI
+function setConstraintModeUI(mode) {
+    const radio = document.querySelector(`input[name="c-mode"][value="${mode}"]`);
+    if (radio) radio.checked = true;
+}
+
 function renderConstraintList(listItems, labelType) {
     const container = document.getElementById('constraint-list');
     if (!container) return;
@@ -372,14 +392,12 @@ function renderConstraintList(listItems, labelType) {
     }
 
     const listHtml = listItems.map(item => `
-        <div class="constraint-row" style="padding: 8px 5px; border-bottom: 1px solid #eee;">
+        <div class="constraint-row">
             <div style="flex: 1; padding-right: 10px;">
-                <div class="c-name" style="font-weight: 600; color: #333; font-size: 11px;">${item.name}</div>
+                <div class="c-name">${item.name}</div>
             </div>
             <div style="text-align: right;">
-                <div class="c-price" style="font-size: 12px; color: #d32f2f; font-weight: bold;">
-                    $${item.price.toFixed(2)}
-                </div>
+                <div class="c-price">$${item.price.toFixed(2)}</div>
                 <div style="font-size: 9px; color: #999;">${labelType}</div>
             </div>
         </div>
@@ -399,16 +417,105 @@ function calculateGlobalStats(constraintList, totalHours) {
     )
     .map(([name, totalSum]) => ({
         name: name,
-        price: totalSum / (totalHours || 1) // Avg/Hr
+        price: totalSum / (totalHours || 1) 
     }))
     .sort((a, b) => a.price - b.price) 
-    .slice(0, 10); // Limit to 10 most active constraints
+    .slice(0, 10); 
 }
 
+// Calculate Zone Averages for the Initial View
+function calculateZoneAverages() {
+    const sums = {};
+    
+    timeSeriesData.forEach(step => {
+        Object.entries(step.readings).forEach(([zone, values]) => {
+            if (!sums[zone]) sums[zone] = { da: 0, rt: 0, net: 0, count: 0 };
+            sums[zone].da += values.da || 0;
+            sums[zone].rt += values.rt || 0;
+            sums[zone].net += values.net || 0;
+            sums[zone].count++;
+        });
+    });
+
+    const averages = {};
+    Object.keys(sums).forEach(zone => {
+        const s = sums[zone];
+        if (s.count > 0) {
+            averages[zone] = {
+                da: s.da / s.count,
+                rt: s.rt / s.count,
+                net: s.net / s.count
+            };
+        }
+    });
+    return averages;
+}
+
+// Render the Average View
+function renderAverageView() {
+    isAverageMode = true;
+    timeDisplay.innerText = 'Period Average';
+    slider.value = 0; 
+    
+    // 1. Set Constraint Mode to Global
+    setConstraintModeUI('global');
+    renderConstraintList(globalConstraintCache, 'Avg/Hr');
+
+    if (Object.keys(averageDataCache).length === 0) {
+        averageDataCache = calculateZoneAverages();
+    }
+
+    const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
+    const colorExpression = ['case'];
+
+    // 2. Update Map Colors
+    for (const zone in averageDataCache) {
+        const val = averageDataCache[zone][activePriceType];
+        colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+    }
+    colorExpression.push('#cccccc');
+    
+    if (map.getLayer('zoneFill')) {
+        map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
+    }
+
+    // 3. Calculate PJM Average (Average of all Zone Averages)
+    let pjmSum = 0;
+    let pjmCount = 0;
+    Object.values(averageDataCache).forEach(z => {
+        if (z[activePriceType] !== undefined) {
+            pjmSum += z[activePriceType];
+            pjmCount++;
+        }
+    });
+    const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
+
+    // 4. Update Sidebar List
+    document.querySelectorAll('.zone-item').forEach(item => {
+        const zName = item.dataset.zoneName;
+        const priceSpan = item.querySelector('.zone-price');
+        if (!priceSpan) return;
+        
+        let val;
+        if (zName === 'PJM') {
+            val = pjmAvg; 
+        } else {
+            val = averageDataCache[zName] ? averageDataCache[zName][activePriceType] : null;
+        }
+
+        if (val !== null && val !== undefined) {
+            priceSpan.innerText = `$${val.toFixed(2)}`;
+            priceSpan.style.color = getColorForLmp(val, currentScale);
+        } else {
+            priceSpan.innerText = ''; 
+            priceSpan.style.color = '#000';
+        }
+    });
+}
 
 // Fetch Op
 async function fetchLmpData() {
-    timeDisplay.innerText = 'Querying Data';
+    timeDisplay.innerText = 'Querying Data...';
     
     try {
         const cleanDate = (d) => {
@@ -450,16 +557,17 @@ async function fetchLmpData() {
             return;
         }
         const totalHours = timeSeriesData.length;
+        
+        // Calculate Global Constraints
         globalConstraintCache = calculateGlobalStats(constraintsData, totalHours);
-        if (activeConstraintMode === 'global') {
-            renderConstraintList(globalConstraintCache, 'Avg/Hr');
-        }
 
         slider.max = timeSeriesData.length - 1;
         slider.disabled = false;
         playBtn.disabled = false;
         
-        updateAnimation(0);
+        // Render Average View Initially
+        averageDataCache = calculateZoneAverages(); 
+        renderAverageView(); 
         
     } catch (error) {
         console.error("Fetch Error:", error);
@@ -468,8 +576,9 @@ async function fetchLmpData() {
     }
 }
 
-// Animation
+// Animation (Specific Hour)
 function updateAnimation(index) {
+    isAverageMode = false; 
     currentIndex = index;
     slider.value = index;
     const data = timeSeriesData[index];
@@ -488,7 +597,7 @@ function updateAnimation(index) {
 
     timeDisplay.innerText = `${dateStr} | ${hourStr}`;
 
-    // B. Update Map
+    // 1. Update Map
     const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
     for (const zone in data.readings) {
@@ -501,12 +610,30 @@ function updateAnimation(index) {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // Update Sidebar: ZONES
+    // 2. Calculate PJM Average for this specific hour
+    let pjmSum = 0;
+    let pjmCount = 0;
+    Object.values(data.readings).forEach(r => {
+         if (r[activePriceType] !== undefined) {
+             pjmSum += r[activePriceType];
+             pjmCount++;
+         }
+    });
+    const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
+
+    // 3. Update Sidebar: ZONES
     document.querySelectorAll('.zone-item').forEach(item => {
         const zName = item.dataset.zoneName;
         const priceSpan = item.querySelector('.zone-price');
         if (!priceSpan) return;
-        const val = data.readings[zName] ? data.readings[zName][activePriceType] : null;
+        
+        let val;
+        if (zName === 'PJM') {
+            val = pjmAvg; 
+        } else {
+            val = data.readings[zName] ? data.readings[zName][activePriceType] : null;
+        }
+
         if (val !== null && val !== undefined) {
             priceSpan.innerText = `$${val.toFixed(2)}`;
             priceSpan.style.color = getColorForLmp(val, currentScale);
@@ -516,26 +643,25 @@ function updateAnimation(index) {
         }
     });
 
-    // Update Current Constraint Sidebar
-    if (activeConstraintMode === 'current') {
+    // 4. Update Constraints: Switch to Current Hour & Show Top 10
+    setConstraintModeUI('current');
+    
+    const currentLmpIso = data.datetime.replace(' ', 'T'); 
+    const currentTs = new Date(currentLmpIso).getTime();
+    
+    const activeConstraints = constraintsData.filter(c => {
+        const constraintIso = c.timestamp.replace(' ', 'T'); 
+        const constraintTs = new Date(constraintIso).getTime();
+        return constraintTs === currentTs;
+    })
+    .map(c => ({
+        name: c.name || c.monitored_facility,
+        price: Number(c.shadow_price || 0)
+    }))
+    .sort((a, b) => a.price - b.price) // Sort by price
+    .slice(0, 10); // Top 10
 
-        const currentLmpIso = data.datetime.replace(' ', 'T'); 
-        const currentTs = new Date(currentLmpIso).getTime();
-        
-        const activeConstraints = constraintsData.filter(c => {
-            const constraintIso = c.timestamp.replace(' ', 'T'); 
-            const constraintTs = new Date(constraintIso).getTime();
-            return constraintTs === currentTs;
-        })
-        .map(c => ({
-            name: c.name || c.monitored_facility,
-            price: Number(c.shadow_price || 0)
-        }))
-        // Sort Smallest(most neg) to Largest
-        .sort((a, b) => a.price - b.price); 
-
-        renderConstraintList(activeConstraints, 'Shadow Price');
-    }
+    renderConstraintList(activeConstraints, 'Shadow Price');
 }
 
 // UI Stuff
@@ -582,7 +708,7 @@ function buildLegend(currentScale) {
 }
 
 // Map Init
-const map = new maplibregl.Map({ container: "map", zoom: 5.4, center: [-82, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
+const map = new maplibregl.Map({ container: "map", zoom: 5.2, center: [-82, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
 , attributionControl: false });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 map.addControl(new maplibregl.AttributionControl(), 'bottom-right');
@@ -621,7 +747,7 @@ map.on('load', async () => {
     const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('fetch') === 'true') { 
         displayCurrentFilter(); 
-        document.getElementById('legend').style.display= 'block'; // <--- UNHIDE LEGEND
+        document.getElementById('legend').style.display= 'block'; 
         fetchLmpData(); 
     } 
     else if (document.referrer.includes('/picker')) {displayCurrentFilter(); 
@@ -630,29 +756,33 @@ map.on('load', async () => {
     }
     
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
+    
     map.on('mousemove', 'zoneFill', (e) => {
-        if (!e.features[0] || timeSeriesData.length === 0) return;
+        if (!e.features[0]) return;
         const zone = e.features[0].properties.Zone_Name;
-        const lmpData = timeSeriesData[currentIndex]?.readings[zone];
-        const lmp = lmpData ? lmpData[activePriceType] : null;
-        const label = activePriceType === 'da' ? 'Day-Ahead' : activePriceType === 'rt' ? 'Real-Time' : 'NET';
-        popup.setLngLat(e.lngLat).setHTML(`<div><strong>${zone}</strong><br>${label}: ${lmp != null ? '$' + lmp.toFixed(2) : 'N/A'}</div>`).addTo(map);
+        let lmp = null;
+        let labelPrefix = '';
+
+        if (isAverageMode && averageDataCache[zone]) {
+            lmp = averageDataCache[zone][activePriceType];
+            labelPrefix = 'Avg ';
+        } else if (!isAverageMode && timeSeriesData.length > 0) {
+            const lmpData = timeSeriesData[currentIndex]?.readings[zone];
+            lmp = lmpData ? lmpData[activePriceType] : null;
+        }
+
+        const typeLabel = activePriceType === 'da' ? 'Day-Ahead' : activePriceType === 'rt' ? 'Real-Time' : 'NET';
+        const finalLabel = `${labelPrefix}${typeLabel}`;
+        
+        popup.setLngLat(e.lngLat)
+             .setHTML(`<div><strong>${zone}</strong><br>${finalLabel}: ${lmp != null ? '$' + lmp.toFixed(2) : 'N/A'}</div>`)
+             .addTo(map);
     });
+    
     map.on('mouseleave', 'zoneFill', () => { popup.remove(); });
 });
 
-// EVENT LISTENERS ---
-
-document.querySelectorAll('input[name="c-mode"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-        activeConstraintMode = e.target.value;
-        if (activeConstraintMode === 'global') {
-            renderConstraintList(globalConstraintCache, 'Avg/Hr');
-        } else {
-            updateAnimation(currentIndex);
-        }
-    });
-});
+// Listeners
 
 zoneListElement.addEventListener('click', (e) => {
     const item = e.target.closest('.zone-item');
@@ -663,11 +793,10 @@ zoneListElement.addEventListener('click', (e) => {
     const zData = zones.find(z => z.name === zName);
     
     if (zName === 'PJM') { 
-        map.flyTo({ center: [-81.5, 38.6], zoom: 5.1, pitch: 10 }); 
+        map.flyTo({ center: [-81.5, 38.6], zoom: 4.8, pitch: 10 }); 
     } 
     else if (zData) { 
-        // Zone Clicked: Zoom & Update Border
-        map.flyTo({ center: zData.center, zoom: 5.9, pitch: 20 }); 
+        map.flyTo({ center: zData.center, zoom: 5.7, pitch: 20 }); 
         selectedZoneName = zName;
         if (map.getLayer('zoneLines')) {
             map.setPaintProperty('zoneLines', 'line-width', 
@@ -678,10 +807,44 @@ zoneListElement.addEventListener('click', (e) => {
 });
 
 map.on('click', 'zoneFill', (e) => { if (e.features.length) { const name = e.features[0].properties.Zone_Name; document.querySelector(`.zone-item[data-zone-name="${name}"]`)?.click(); }});
-document.querySelector('.price-selector').addEventListener('change', (e) => { activePriceType = e.target.value; buildLegend(activePriceType === 'net' ? NET_COLOR_SCALE : COLOR_SCALE); if (timeSeriesData.length) updateAnimation(currentIndex); });
-slider.oninput = (e) => { if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } updateAnimation(parseInt(e.target.value)); };
+
+document.querySelector('.price-selector').addEventListener('change', (e) => { 
+    activePriceType = e.target.value; 
+    buildLegend(activePriceType === 'net' ? NET_COLOR_SCALE : COLOR_SCALE); 
+    
+    if (isAverageMode) {
+        renderAverageView();
+    } else if (timeSeriesData.length) {
+        updateAnimation(currentIndex); 
+    }
+});
+
+slider.oninput = (e) => { 
+    if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } 
+    updateAnimation(parseInt(e.target.value)); 
+};
+
 playBtn.onclick = () => {
     if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } 
-    else { if (currentIndex >= timeSeriesData.length - 1) updateAnimation(0); playBtn.innerText = 'Pause'; timer = setInterval(() => { const nextIndex = currentIndex + 1; if (nextIndex >= timeSeriesData.length) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } else { updateAnimation(nextIndex); } }, 500); }
+    else { 
+        if (currentIndex >= timeSeriesData.length - 1) updateAnimation(0); 
+        playBtn.innerText = 'Pause'; 
+        timer = setInterval(() => { 
+            const nextIndex = currentIndex + 1; 
+            if (nextIndex >= timeSeriesData.length) { 
+                clearInterval(timer); timer = null; playBtn.innerText = 'Play'; 
+            } else { 
+                updateAnimation(nextIndex); 
+            } 
+        }, 500); 
+    }
 };
+
+avgBtn.onclick = () => {
+    if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; }
+    renderAverageView();
+};
+
 filterBtn.onclick = () => window.location.href = '/picker';
+
+```

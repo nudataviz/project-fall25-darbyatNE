@@ -47,13 +47,13 @@ html: |
     </div>
     <!-- Column 2: Constraints -->
     <div id="constraint-section">
-      <div class="constraint-header-wrapper" style="background-color: #e9ecef; border-bottom: 1px solid #ccc; padding: 5px;">
-          <h4 style="margin: 0; border: none; background: none; padding-bottom: 2px;">Active Constraints</h4>
-          <div class="c-toggle-container" style="display: flex; justify-content: center; gap: 10px; font-size: 10px;">
-              <label style="cursor: pointer;">
+      <div class="constraint-header-wrapper">
+          <h4>Active Constraints</h4>
+          <div class="c-toggle-container">
+              <label>
                   <input type="radio" name="c-mode" value="global" checked> Period Avg
               </label>
-              <label style="cursor: pointer;">
+              <label>
                   <input type="radio" name="c-mode" value="current"> Current Hour
               </label>
           </div>
@@ -62,20 +62,28 @@ html: |
         <div class="empty-state">No active constraints</div>
       </div>
     </div>
-
-
   </div>
 </div>
 
 <style>
-  /* Title Styles */
+  /* FRAMEWORK OVERRIDES */
+  :root {
+    --max-width: 100% !important; 
+  }
+
+  #observablehq-main, main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* GLOBAL LAYOUT */
   #page-header {
     width: 100%;
-    max-width: 98%;   
-    margin: 0 auto;     
+    margin: 0;         
     text-align: center;     
-    padding-top: 5px;
-    padding-bottom: 1px;
+    padding: 5px 20px 1px 20px; 
     font-family: sans-serif;
     box-sizing: border-box; 
   }
@@ -86,24 +94,25 @@ html: |
     font-size: 2rem;
   }
 
-  /* Styles for the top controls area */
   .top-controls-wrapper {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    padding: 8px 0;
-    max-width: 98%;
-    margin: 0 auto;
+    padding: 8px 20px; 
+    width: 100%;       
+    margin: 0;
     font-family: sans-serif;
+    box-sizing: border-box;
   }
+
   #top-filter-display {
     background-color: #e7f3ff;
     border: 1px solid #99caff;
     border-radius: 5px;
     padding: 8px 15px;
     font-size: 16px;
-    min-width: 700px;
+    flex: 1; 
   }
   #top-filter-display ul {
     list-style: none;
@@ -116,14 +125,14 @@ html: |
     white-space: nowrap;
   }
 
-  /* Price Selector styles */
+  /* PRICE SELECTOR */
   .price-label {
     padding: 8px 16px;
     background-color: #e0e0e0; 
     color: #333;
     font-weight: bold;
     font-size: 14px;
-    border-right: 1px solid #aaa; /* Adds the separator line */
+    border-right: 1px solid #aaa; 
     display: flex;
     align-items: center;
     cursor: default; 
@@ -135,17 +144,17 @@ html: |
   .price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
   .price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
 
-  /* Main container styles */
+  /* MAIN CONTAINER & MAP */
   #main-container { 
     display: flex; 
-    width: 100%; 
-    max-width: 98%;
+    width: 100%;      
     border: 1px solid #ccc; 
     border-radius: 5px; 
     font-family: sans-serif; 
-    margin: 0 auto; 
+    margin: 0;        
     box-sizing: border-box; 
-    height: 660px; 
+    height: 75vh;     
+    min-height: 600px;
   }
 
   #map-container { flex: 1; height: 100%; display: flex; flex-direction: column; position: relative; min-width: 0; }
@@ -153,9 +162,8 @@ html: |
   #controls-container { height: 40px; display: flex; align-items: center; padding: 0 15px; border-top: 1px solid #ccc; background: #f8f9fa; gap: 10px; }
   #time-display { font-size: 16px; min-width: 150px; text-align: right; }
   
-  /* SIDEBAR STYLES */
+  /* SIDEBAR LAYOUT */
   #sidebar {
-    /* Sum of zone-section and constraint-section widths */
     width: 310px; 
     height: 100%;
     border-left: 1px solid #ccc;
@@ -165,7 +173,6 @@ html: |
     flex-direction: row; 
   }
   
-  /* 1. Zone Section Width */
   #zone-section {
     width: 130px; 
     display: flex;
@@ -174,7 +181,6 @@ html: |
     border-right: 1px solid #ccc; 
   }
 
-  /* 2. Constraint Section Width */
   #constraint-section {
     width: 180px; 
     display: flex;
@@ -182,6 +188,9 @@ html: |
     overflow: hidden;
   }
 
+  /* HEADERS & LISTS */
+  
+  /* Generic Header Style */
   h4 {
     height: 30px;
     padding: 0 10px;
@@ -197,16 +206,57 @@ html: |
     flex-shrink: 0;
   }
 
-  /* Scrollable Lists */
+  /* Zone Header Override (Taller to match Constraint Header) */
+  #zone-section h4 {
+    height: 62px;
+    border-bottom: 1px solid #ccc;
+  }
+
+  /* Constraint Header Wrapper (Replaces inline styles) */
+  .constraint-header-wrapper {
+    background-color: #e9ecef;
+    border-bottom: 1px solid #ccc;
+    padding: 6.5px 5px; /* Padding adjusted to equal ~62px total height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Constraint Title */
+  .constraint-header-wrapper {
+    height: 63px;             
+    box-sizing: border-box;   
+    background-color: #e9ecef;
+    border-bottom: 1px solid #ccc;
+    padding: 0 5px;           
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+  }
+
+  /* Constraint Toggles */
+  .c-toggle-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    font-size: 10px;
+  }
+  .c-toggle-container label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* Lists */
   #zone-list, #constraint-list {
     flex: 1;
     overflow-y: auto;
     background: white;
   }
   
-  /* List Items (Shared Look) */
   .zone-item, .constraint-row {
-    padding: 5px 3px; 
+    padding: 3px 2px; 
     border-bottom: 1px solid #f0f0f0;
     font-size: 11px;
     display: flex;
@@ -214,13 +264,11 @@ html: |
     align-items: center;
   }
   
-  /* Zone Specifics */
   .zone-item { cursor: pointer; }
   .zone-item:hover { background-color: #e2e6ea; }
   .zone-item.selected { background-color: #007bff; color: white; font-weight: bold; }
   .zone-item .zone-price { font-weight: bold; min-width: 40px; text-align: right; }
 
-  /* Constraint Specifics */
   .constraint-row .c-name {
     flex: 1;
     margin-right: 5px;
@@ -242,51 +290,50 @@ html: |
     font-size: 11px;
   }
 
-/* Legend Container */
-#legend {
-  position: absolute;
-  bottom: 50px;        
-  right: 10px;         
-  width: 120px;       
-  max-height: 300px;
-  overflow-y: auto;
-  background-color: rgba(255, 255, 255, 0.95);
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  font-family: sans-serif;
-  font-size: 12px;
-  line-height: 1.4;
-  z-index: 100; 
-}
+  /* LEGEND */
+  #legend {
+    display: none;
+    position: absolute;
+    bottom: 50px;        
+    left: 10px;         
+    width: 120px;       
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-family: sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    z-index: 100; 
+  }
 
-/* Legend Header */
-#legend strong {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 4px;
-  color: #333;
-}
+  #legend strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+    color: #333;
+  }
 
-/* Individual Legend Rows */
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 3px;
-}
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3px;
+  }
 
-/* The Color Box */
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  margin-right: 8px;
-  border: 1px solid rgba(0,0,0,0.2);
-  flex-shrink: 0;
-}
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 8px;
+    border: 1px solid rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
 </style>
+
 
 ```js
 import maplibregl from "npm:maplibre-gl";
@@ -535,7 +582,7 @@ function buildLegend(currentScale) {
 }
 
 // Map Init
-const map = new maplibregl.Map({ container: "map", zoom: 4.8, center: [-81.5, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
+const map = new maplibregl.Map({ container: "map", zoom: 5.4, center: [-82, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
 , attributionControl: false });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 map.addControl(new maplibregl.AttributionControl(), 'bottom-right');
@@ -565,16 +612,22 @@ map.on('load', async () => {
         map.addLayer({ id: 'zoneLabels', type: 'symbol', source: 'zoneLabelPoints', layout: { 'text-field': ['get', 'Zone_Name'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#000000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1 } });
 
         zones = shapes.features.map(f => ({ name: f.properties.Zone_Name, center: d3.geoCentroid(f) })).sort((a, b) => a.name.localeCompare(b.name));
-        zones.unshift({ name: "PJM", center: [-81.5, 38.6] });
+        zones.unshift({ name: "PJM", center: [-82, 38.6] });
         
         zoneListElement.innerHTML = zones.map(z => `<div class="zone-item" data-zone-name="${z.name}"><span class="zone-name">${z.name}</span><span class="zone-price"></span></div>`).join('');
     } catch (e) { alert("Failed to load Map Zones"); }
 
     buildLegend(COLOR_SCALE);
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('fetch') === 'true') { displayCurrentFilter(); fetchLmpData(); } 
-    else if (document.referrer.includes('/picker')) { displayCurrentFilter(); } 
-    else { document.getElementById('top-filter-display').innerHTML = '<ul><li>-- None Selected --</li></ul>'; }
+        if (urlParams.get('fetch') === 'true') { 
+        displayCurrentFilter(); 
+        document.getElementById('legend').style.display= 'block'; // <--- UNHIDE LEGEND
+        fetchLmpData(); 
+    } 
+    else if (document.referrer.includes('/picker')) {displayCurrentFilter(); 
+    } 
+    else {document.getElementById('top-filter-display').innerHTML = '<ul><li>-- None Selected --</li></ul>'; 
+    }
     
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
     map.on('mousemove', 'zoneFill', (e) => {
@@ -610,11 +663,11 @@ zoneListElement.addEventListener('click', (e) => {
     const zData = zones.find(z => z.name === zName);
     
     if (zName === 'PJM') { 
-        map.flyTo({ center: [-81.5, 38.6], zoom: 4.8, pitch: 10 }); 
+        map.flyTo({ center: [-81.5, 38.6], zoom: 5.1, pitch: 10 }); 
     } 
     else if (zData) { 
         // Zone Clicked: Zoom & Update Border
-        map.flyTo({ center: zData.center, zoom: 5.7, pitch: 20 }); 
+        map.flyTo({ center: zData.center, zoom: 5.9, pitch: 20 }); 
         selectedZoneName = zName;
         if (map.getLayer('zoneLines')) {
             map.setPaintProperty('zoneLines', 'line-width', 
@@ -632,5 +685,3 @@ playBtn.onclick = () => {
     else { if (currentIndex >= timeSeriesData.length - 1) updateAnimation(0); playBtn.innerText = 'Pause'; timer = setInterval(() => { const nextIndex = currentIndex + 1; if (nextIndex >= timeSeriesData.length) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } else { updateAnimation(nextIndex); } }, 500); }
 };
 filterBtn.onclick = () => window.location.href = '/picker';
-
-

@@ -6,17 +6,17 @@
 </div>
 
 <div class="top-controls-wrapper">
-  <div class="price-selector-container">
-    <div class="price-selector">
-    <span class="price-label">Price Type &rarr;</span>
+      <div class="price-selector">
+      <span class="price-label">Price Type &rarr;</span>
       <input type="radio" id="price-da" name="price-type" value="da" checked>
       <label for="price-da">Day-Ahead</label>
       <input type="radio" id="price-rt" name="price-type" value="rt">
       <label for="price-rt">Real-Time</label>
       <input type="radio" id="price-net" name="price-type" value="net">
       <label for="price-net">NET</label>
+      <input type="radio" id="price-cong" name="price-type" value="congestion">
+      <label for="price-cong">Congestion</label>
     </div>
-  </div>
   <div id="top-filter-display">
     <!-- Dyn -->
   </div>
@@ -75,7 +75,7 @@
 
   #observablehq-main, main {
     max-width: 100% !important;
-    padding: 0 !important;
+    padding: 0 0 0 50px !important;
     margin: 0 !important;
     width: 100% !important;
   }
@@ -534,7 +534,7 @@ function renderAverageView() {
     });
 }
 
-// Query Op
+// Query Operation
 async function fetchLmpData() {
     timeDisplay.innerText = 'Querying Data...';
     
@@ -790,13 +790,19 @@ map.on('load', async () => {
             lmp = lmpData ? lmpData[activePriceType] : null;
         }
 
-        const typeLabel = activePriceType === 'da' ? 'Day-Ahead' : activePriceType === 'rt' ? 'Real-Time' : 'NET';
+        // Updated Label Logic
+        let typeLabel = 'NET';
+        if (activePriceType === 'da') typeLabel = 'Day-Ahead';
+        else if (activePriceType === 'rt') typeLabel = 'Real-Time';
+        else if (activePriceType === 'congestion') typeLabel = 'Congestion';
+
         const finalLabel = `${labelPrefix}${typeLabel}`;
         
         popup.setLngLat(e.lngLat)
              .setHTML(`<div><strong>${zone}</strong><br>${finalLabel}: ${lmp != null ? '$' + lmp.toFixed(2) : 'N/A'}</div>`)
              .addTo(map);
     });
+
     
     map.on('mouseleave', 'zoneFill', () => { popup.remove(); });
 });
@@ -845,8 +851,7 @@ slider.oninput = (e) => {
 
 // Animation Speed Logic
 speedSlider.oninput = (e) => {
-    playbackSpeed = parseInt(e.target.value);
-
+    playbackSpeed = 3100 - parseInt(e.target.value);
     if (timer) {
         clearInterval(timer);
         timer = setInterval(() => { 
@@ -860,6 +865,7 @@ speedSlider.oninput = (e) => {
     }
 };
 
+// Click Play bttn Logic
 playBtn.onclick = () => {
     if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; } 
     else { 
@@ -876,6 +882,7 @@ playBtn.onclick = () => {
     }
 };
 
+// Click Avg bttn Logic
 avgBtn.onclick = () => {
     if (timer) { clearInterval(timer); timer = null; playBtn.innerText = 'Play'; }
     renderAverageView();

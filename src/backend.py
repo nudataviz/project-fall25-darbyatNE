@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 import collections
 from pydantic import BaseModel
-from typing import List
+from typing import Optional, List
 
 load_dotenv()
 app = FastAPI()
@@ -39,12 +39,14 @@ def get_db():
     finally:
         db.close()
 
+# 1. Modified Model: Everything optional except start/end day
 class LmpRangeQuery(BaseModel):
     start_day: str
     end_day: str
-    days_of_week: List[int]
-    start_hour: int  # e.g., 15
-    end_hour: int    # e.g., 20 (exclusive upper bound)
+    days_of_week: Optional[List[int]] = None
+    start_hour: Optional[int] = None
+    end_hour: Optional[int] = None
+    selected_constraint: Optional[str] = None
 
 # PJM Zone Shapes Endpoint
 @app.get("/api/zones")
@@ -75,16 +77,15 @@ def get_zones(db: Session = Depends(get_db)):
 @app.post("/api/lmp/range")
 def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     try:
-        # Params
+        # Params Setup
         params = {}
         start_datetime_obj = datetime.strptime(query.start_day, '%Y-%m-%d')
         end_datetime_obj = datetime.strptime(query.end_day, '%Y-%m-%d') + timedelta(days=1)
+        
         params["start_dt"] = start_datetime_obj
         params["end_dt"] = end_datetime_obj
-        params["start_hour"] = query.start_hour
-        params["end_hour"] = query.end_hour
 
-        # LMP Query 
+        # 2. Base LMP Query (Removed hardcoded Hour filters)
         lmp_query_str = """
             SELECT
                 z.Transact_Z,
@@ -102,11 +103,9 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
             WHERE
                 da.datetime_beginning_ept >= :start_dt AND da.datetime_beginning_ept < :end_dt
-                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour
-                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour
         """
 
-        # Constraints Query
+        # 2. Base Constraints Query (Removed hardcoded Hour filters)
         constraints_query_str = """
             SELECT
                 DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') AS hour_beginning,
@@ -116,18 +115,29 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 electric_data.pjm_binding_constraints
             WHERE
                 datetime_beginning_ept >= :start_dt AND datetime_beginning_ept < :end_dt
-                AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour
-                AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour
         """
 
-        # DOW Filters
+        # 3. Dynamic Filtering Logic
+        
+        # Filter: Start Hour
+        if query.start_hour is not None:
+            lmp_query_str += " AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour"
+            constraints_query_str += " AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour"
+            params["start_hour"] = query.start_hour
+
+        # Filter: End Hour
+        if query.end_hour is not None:
+            lmp_query_str += " AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour"
+            constraints_query_str += " AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour"
+            params["end_hour"] = query.end_hour
+
+        # Filter: Days of Week
         if query.days_of_week:
             lmp_query_str += " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
             constraints_query_str += " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
-            
             params["days_of_week"] = tuple(query.days_of_week)
 
-        # Order and Group
+        # Order and Group (Append to end of string)
         lmp_query_str += " ORDER BY z.Transact_Z, da.datetime_beginning_ept;"
         constraints_query_str += " GROUP BY hour_beginning, monitored_facility ORDER BY hour_beginning, monitored_facility;"
 
@@ -135,7 +145,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
         lmp_result = db.execute(text(lmp_query_str), params)
         constraints_result = db.execute(text(constraints_query_str), params)
 
-        # LMP Data
+        # LMP Data Processing
         lmp_data_by_zone = collections.defaultdict(list)
         lmp_rows = lmp_result.fetchall()
         
@@ -151,7 +161,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                     }
                 })
 
-        # Constraints Data
+        # Constraints Data Processing
         constraints_data = []
         constraint_rows = constraints_result.fetchall()
 

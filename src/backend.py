@@ -174,3 +174,23 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"An unexpected server error occurred while fetching LMP data: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred processing your request.")
+    
+@app.get("/api/constraints/list")
+def get_unique_constraints(db: Session = Depends(get_db)):
+    try:
+        # Query for distinct monitored facilities aka constraints
+        query = text("""
+            SELECT DISTINCT monitored_facility 
+            FROM electric_data.pjm_binding_constraints
+            WHERE monitored_facility IS NOT NULL
+            ORDER BY monitored_facility ASC
+        """)
+        
+        result = db.execute(query)
+        constraints = [row[0] for row in result.fetchall()]
+        
+        return {"constraints": constraints}
+        
+    except Exception as e:
+        print(f"An unexpected server error occurred while fetching constraint list: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")

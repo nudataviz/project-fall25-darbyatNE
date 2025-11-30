@@ -34,7 +34,7 @@ export function dateTimeRangePicker(options = {}) {
   const dateSection = container.append("div")
     .style("margin-bottom", "20px")
     .style("padding", "15px")
-    .style("background", "#f8f9fa")
+    .style("background-color", "#f8f9fa") 
     .style("border-radius", "8px");
 
   dateSection.append("h4")
@@ -51,6 +51,7 @@ export function dateTimeRangePicker(options = {}) {
     .style("font-weight", "500")
     .text("Start:");
 
+  // Date Input (Local Time Fix)
   const startDateInput = dateInputs.append("input")
     .attr("type", "date")
     .attr("value", formatDateForInput(startDate))
@@ -58,7 +59,8 @@ export function dateTimeRangePicker(options = {}) {
     .style("border", "1px solid #ccc")
     .style("border-radius", "4px")
     .on("change", function() {
-      startDate = new Date(this.value);
+      const parts = this.value.split('-');
+      startDate = new Date(parts[0], parts[1] - 1, parts[2]); 
       updateDisplay();
     });
 
@@ -67,6 +69,7 @@ export function dateTimeRangePicker(options = {}) {
     .style("margin-left", "15px")
     .text("End:");
 
+  // Date Input (Local Time Fix)
   const endDateInput = dateInputs.append("input")
     .attr("type", "date")
     .attr("value", formatDateForInput(endDate))
@@ -74,7 +77,8 @@ export function dateTimeRangePicker(options = {}) {
     .style("border", "1px solid #ccc")
     .style("border-radius", "4px")
     .on("change", function() {
-      endDate = new Date(this.value);
+      const parts = this.value.split('-');
+      endDate = new Date(parts[0], parts[1] - 1, parts[2]);
       updateDisplay();
     });
 
@@ -82,7 +86,7 @@ export function dateTimeRangePicker(options = {}) {
   const daysSection = container.append("div")
     .style("margin-bottom", "20px")
     .style("padding", "15px")
-    .style("background", "#f8f9fa")
+    .style("background-color", "#f8f9fa")
     .style("border-radius", "8px");
 
   daysSection.append("h4")
@@ -100,7 +104,7 @@ export function dateTimeRangePicker(options = {}) {
       .style("padding", "8px 16px")
       .style("border", "2px solid #007bff")
       .style("border-radius", "20px")
-      .style("background", daysOfWeek[i] ? "#007bff" : "white")
+      .style("background-color", daysOfWeek[i] ? "#007bff" : "white") // Updated
       .style("color", daysOfWeek[i] ? "white" : "#007bff")
       .style("cursor", "pointer")
       .style("font-weight", "500")
@@ -109,7 +113,7 @@ export function dateTimeRangePicker(options = {}) {
       .on("click", function() {
         daysOfWeek[i] = !daysOfWeek[i];
         d3.select(this)
-          .style("background", daysOfWeek[i] ? "#007bff" : "white")
+          .style("background-color", daysOfWeek[i] ? "#007bff" : "white")
           .style("color", daysOfWeek[i] ? "white" : "#007bff");
         updateDisplay();
       })
@@ -126,7 +130,7 @@ export function dateTimeRangePicker(options = {}) {
   const timeSection = container.append("div")
     .style("margin-bottom", "20px")
     .style("padding", "15px")
-    .style("background", "#f8f9fa")
+    .style("background-color", "#f8f9fa") 
     .style("border-radius", "8px");
 
   timeSection.append("h4")
@@ -187,41 +191,41 @@ export function dateTimeRangePicker(options = {}) {
   // Create draggable handles
   const handleRadius = 10;
   
-const startHandle = g.append("circle")
-  .attr("cy", innerHeight / 2)
-  .attr("r", handleRadius)
-  .attr("fill", "#007bff")
-  .attr("stroke", "white")
-  .attr("stroke-width", 2)
-  .attr("cursor", "ew-resize")
-  .call(d3.drag()
-    .on("drag", function(event) {
-      const x = Math.max(0, Math.min(innerWidth, event.x));
-      const newTime = Math.round(timeScale.invert(x)); // Snap to whole hour
-      if (newTime < endTime) {
-        startTime = newTime;
-        updateTimeSlider();
-        updateDisplay();
-      }
-    }));
+  const startHandle = g.append("circle")
+    .attr("cy", innerHeight / 2)
+    .attr("r", handleRadius)
+    .attr("fill", "#007bff")
+    .attr("stroke", "white")
+    .attr("stroke-width", 2)
+    .attr("cursor", "ew-resize")
+    .call(d3.drag()
+      .on("drag", function(event) {
+        const x = Math.max(0, Math.min(innerWidth, event.x));
+        const newTime = Math.round(timeScale.invert(x)); 
+        if (newTime < endTime) {
+          startTime = newTime;
+          updateTimeSlider();
+          updateDisplay();
+        }
+      }));
 
-const endHandle = g.append("circle")
-  .attr("cy", innerHeight / 2)
-  .attr("r", handleRadius)
-  .attr("fill", "#007bff")
-  .attr("stroke", "white")
-  .attr("stroke-width", 2)
-  .attr("cursor", "ew-resize")
-  .call(d3.drag()
-    .on("drag", function(event) {
-      const x = Math.max(0, Math.min(innerWidth, event.x));
-      const newTime = Math.round(timeScale.invert(x)); // Snap to whole hour
-      if (newTime > startTime) {
-        endTime = newTime;
-        updateTimeSlider();
-        updateDisplay();
-      }
-    }));
+  const endHandle = g.append("circle")
+    .attr("cy", innerHeight / 2)
+    .attr("r", handleRadius)
+    .attr("fill", "#007bff")
+    .attr("stroke", "white")
+    .attr("stroke-width", 2)
+    .attr("cursor", "ew-resize")
+    .call(d3.drag()
+      .on("drag", function(event) {
+        const x = Math.max(0, Math.min(innerWidth, event.x));
+        const newTime = Math.round(timeScale.invert(x)); 
+        if (newTime > startTime) {
+          endTime = newTime;
+          updateTimeSlider();
+          updateDisplay();
+        }
+      }));
 
   function updateTimeSlider() {
     const x1 = timeScale(startTime);
@@ -238,14 +242,14 @@ const endHandle = g.append("circle")
   const currentFilterDisplay = container.append("div")
     .style("margin-bottom", "20px")
     .style("padding", "15px")
-    .style("background", "#e7f3ff")
+    .style("background-color", "#e7f3ff") 
     .style("border-radius", "8px")
     .style("border", "2px solid #007bff");
 
-  // Save button
+  // Save Button
   const saveButton = container.append("button")
     .style("padding", "10px 20px")
-    .style("background", "#28a745")
+    .style("background-color", "#28a745")
     .style("color", "white")
     .style("border", "none")
     .style("border-radius", "6px")
@@ -256,10 +260,10 @@ const endHandle = g.append("circle")
     .text("💾 Save Filter")
     .on("click", saveFilter)
     .on("mouseenter", function() {
-      d3.select(this).style("background", "#218838");
+      d3.select(this).style("background-color", "#218838");
     })
     .on("mouseleave", function() {
-      d3.select(this).style("background", "#28a745");
+      d3.select(this).style("background-color", "#28a745");
     });
 
   // Saved filters section
@@ -276,12 +280,16 @@ const endHandle = g.append("circle")
     .style("flex-direction", "column")
     .style("gap", "10px");
 
+  // Date Formatter
   function formatDateForInput(date) {
-    return date.toISOString().split('T')[0];
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   function formatTime(hours) {
-    // Since hours are now integers (whole numbers), just output HH:00
     return `${Math.floor(hours).toString().padStart(2, '0')}:00`;
   }
 
@@ -292,7 +300,6 @@ const endHandle = g.append("circle")
       startTime: startTime,
       endTime: endTime,
       daysOfWeek: [...daysOfWeek],
-      // Helper function for filtering data
       matches: function(date) {
         const d = new Date(date);
         const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -326,7 +333,6 @@ const endHandle = g.append("circle")
       </div>
     `);
 
-    // Dispatch custom event with current filter
     container.node().dispatchEvent(new CustomEvent('filterchange', {
       detail: getCurrentFilter(),
       bubbles: true
@@ -340,7 +346,6 @@ const endHandle = g.append("circle")
     savedFilters.push(filter);
     updateSavedList();
     
-    // Dispatch event for saved filters
     container.node().dispatchEvent(new CustomEvent('filtersaved', {
       detail: { filter, allFilters: savedFilters },
       bubbles: true
@@ -361,7 +366,7 @@ const endHandle = g.append("circle")
     savedFilters.forEach((filter, index) => {
       const filterItem = savedList.append("div")
         .style("padding", "12px")
-        .style("background", "white")
+        .style("background-color", "white")
         .style("border", "1px solid #ddd")
         .style("border-radius", "6px")
         .style("display", "flex")
@@ -386,9 +391,10 @@ const endHandle = g.append("circle")
         .style("display", "flex")
         .style("gap", "8px");
 
+      // Load Button
       buttonContainer.append("button")
         .style("padding", "6px 12px")
-        .style("background", "#007bff")
+        .style("background-color", "#007bff") 
         .style("color", "white")
         .style("border", "none")
         .style("border-radius", "4px")
@@ -397,15 +403,16 @@ const endHandle = g.append("circle")
         .text("Load")
         .on("click", () => loadFilter(filter))
         .on("mouseenter", function() {
-          d3.select(this).style("background", "#0056b3");
+          d3.select(this).style("background-color", "#0056b3");
         })
         .on("mouseleave", function() {
-          d3.select(this).style("background", "#007bff");
+          d3.select(this).style("background-color", "#007bff");
         });
 
+      // Delete Button
       buttonContainer.append("button")
         .style("padding", "6px 12px")
-        .style("background", "#dc3545")
+        .style("background-color", "#dc3545") 
         .style("color", "white")
         .style("border", "none")
         .style("border-radius", "4px")
@@ -414,10 +421,10 @@ const endHandle = g.append("circle")
         .text("Delete")
         .on("click", () => deleteFilter(filter.id))
         .on("mouseenter", function() {
-          d3.select(this).style("background", "#c82333");
+          d3.select(this).style("background-color", "#c82333");
         })
         .on("mouseleave", function() {
-          d3.select(this).style("background", "#dc3545");
+          d3.select(this).style("background-color", "#dc3545");
         });
     });
   }
@@ -433,7 +440,7 @@ const endHandle = g.append("circle")
     endDateInput.property("value", formatDateForInput(endDate));
     
     dayButtons.forEach((btn, i) => {
-      btn.style("background", daysOfWeek[i] ? "#007bff" : "white")
+      btn.style("background-color", daysOfWeek[i] ? "#007bff" : "white")
          .style("color", daysOfWeek[i] ? "white" : "#007bff");
     });
 
@@ -451,7 +458,7 @@ const endHandle = g.append("circle")
   updateDisplay();
   updateSavedList();
 
-  // Add method to get current filter
+  // Get current filter
   const node = container.node();
   node.getCurrentFilter = getCurrentFilter;
   node.getSavedFilters = () => savedFilters;

@@ -475,12 +475,12 @@ function calculateZoneAverages() {
 // Render the Average Price View
 function renderAverageView() {
     isAverageMode = true;
-    timeDisplay.innerText = 'Period Average';
+    timeDisplay.innerText = 'All Filtered Hours';
     slider.value = 0; 
     
     // Set Constraint View Mode
     setConstraintModeUI('global');
-    renderConstraintList(globalConstraintCache, 'Avg/Hr');
+    renderConstraintList(globalConstraintCache, 'Avg $/MWHr');
 
     if (Object.keys(averageDataCache).length === 0) {
         averageDataCache = calculateZoneAverages();
@@ -534,7 +534,7 @@ function renderAverageView() {
     });
 }
 
-// Fetch Op
+// Query Op
 async function fetchLmpData() {
     timeDisplay.innerText = 'Querying Data...';
     
@@ -581,7 +581,6 @@ async function fetchLmpData() {
         
         // Constraints
         globalConstraintCache = calculateGlobalStats(constraintsData, totalHours);
-
         slider.max = timeSeriesData.length - 1;
         slider.disabled = false;
         playBtn.disabled = false;

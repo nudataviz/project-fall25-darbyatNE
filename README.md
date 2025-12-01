@@ -1,100 +1,197 @@
-# Semester Project  
-**Course:** CS7250       
-**Term:**   Fall 2025 – Professor Bogden        
+# Semester Project
+**Course:** CS7250  
+**Term:** Fall 2025 – Professor Bogden  
 **Team:** Ben Darby & Ben Henshaw  
 
 ---
 
-## Title: **It's Electric**  
+# It's Electric
+### *Visual Analytics for PJM Market Forecasting*
+
+> **Topic:** Forecasting Electricity Prices by Zone using "Like-Day" Historical Price Retrieval and Analysis
 
 ---
 
-## Topic
+## Project Overview
 
-Forecasting Electricity Prices by Zone using "like days"
+### Purpose
+This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify **historical analogs** ("like days") by analyzing a set of predictive features related to market prices. 
+
+Key features analyzed include:
+*   Calendar dates & seasonality
+*   Days of the week
+*   Hours of the day
+*   Real-time transmission constraints (which cause price congestion across zones)
+
+A critical constraint of this analysis is that all features must be known *prior* to market clearing. The resulting insights enable users to:
+1.  Better forecast zonal Locational Marginal Prices (LMPs).
+2.  Anticipate price separation (congestion) between zones.
+3.  Improve risk management and optimize bidding strategies.
+
+### The Problem We Address: Congestion & Basis Risk
+In ISO markets like PJM, simply securing generation to match your load does not eliminate financial risk. Market participants remain exposed to **price congestion**—the volatile price difference between where energy is generated (Supply) and where it is consumed (Demand).
+
+This "basis risk" cannot be preset. While third-party financial products exist to hedge this risk, purchasing them blindly leaves significant value on the table. 
+
+To determine the true value of congestion risk, participants must understand the specific **situational context**—analyzing historical "like days" to see how the grid behaves under similar supply and demand pressures.
+
+### Target Audience
+This tool is designed for **Procurement Specialists, Energy Traders, Risk Managers, Market Analysts, and Curious Students** who wish to visualize complex inter-zonal relationships and historical patterns.
+
+We specifically target professionals **willing to "do the homework"**—users looking to move beyond passive reporting to actively leverage deep historical data and interactive visualizations for high-stakes decision-making in the Real-Time and Day-Ahead markets.
 
 ---
 
-## Repository Overview  
+## Interface Preview
 
-This repository contains all materials for our CS7250 semester project
+<div align="center">
+  <img src="src/img/PJM_Map.png" alt="PJM LMP Map" width="600">
+  <p><em>The interface allows users to visualize congestion deltas, filter historical data, retrieve summary information, and replay market days hour-by-hour.</em></p>
+
+  <br>
+
+  <img src="src/img/Query_Tool.png" alt="PJM Data Query" width="600">
+  <p><em>The query page allows users to design filters matching specific date, day, time, and congestion conditions. These parameters are dynamically passed to the database to retrieve instant results.</em></p>
+</div>
 
 ---
 
-## Purpose  
-This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify historical analogs by analyzing a set of predictive features related to market prices. A critical constraint is that these features must be known prior to market clearing. The resulting insights will enable users to better forecast zonal Locational Marginal Prices (LMPs) and anticipate price separation between zones, thereby improving risk management and optimizing bidding strategies.
+## System Architecture
+
+The application is built on a modular architecture to ensure scalability and separation of functionality:
+
+| Component | Tech Stack | Role |
+| :--- | :--- | :--- |
+| **Data Sources** | PJM Data Miner 2 & ArcGIS Online | Harnesses the PJM "Data Vault" for market data and retrieves GeoShapes for PJM zone shapes. |
+| **Database** | AWS RDS (MySQL) | Currently Stores 9GB+ of historical PJM market data. |
+| **Frontend** | Observable Framework (JS/D3) | Interactive visualizations and state management. |
+| **Mapping** | MapLibre GL JS | High-performance vector tile mapping for zone topology and ISO border identification. |
+| **Backend** | Python (FastAPI) | Handles API requests and executes complex SQL queries. |
+| **Version Control** | GitHub | Source code management and team collaboration. |
+
 ---
 
-# Reproducibility
+## Reproducibility & Setup
 
-## Preview
+Follow these instructions to clone the repository, configure the environment, and run the application on your local machine.
 
-<img src="img/zone_map.png" width="600" alt="PJM Zone Map">
-
-<img src="img/pjm_mean_zonal.png" width="600" alt="PJM Mean Price by Zone">
-
-## Getting Started
-
-Follow these instructions to clone the repository, configure, and run the application on your local machine.
-
-### Prerequisites
-
+### 1. Prerequisites
 Before you begin, ensure you have the following installed on your system:
 - [Git](https://git-scm.com/)
-- [Conda](https://docs.conda.io/en/latest/miniconda.html) (or Miniconda)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html) (Miniconda or Anaconda)
+- [Node.js & npm](https://nodejs.org/) (Required for Observable Framework)
 
-### Installation and Configuration
+### 2. Installation
 
-1.  **Clone the Repository**
-    After cloning, all subsequent commands should be run from the `project-fall25-darbyatNE` directory.
+**Clone the Repository**  
+All subsequent commands should be run from the project root directory.
+```bash
+git clone https://github.com/nudataviz/project-fall25-darbyatNE
+cd project-fall25-darbyatNE
+```
+
+**Verify Directory Structure**  
+Ensure the `src/` directory exists and contains `index.html`, `picker.md`, and `backend.py`, and that `src/lib/` contains the necessary component files, `config.js`, `filter.js`, `utils.js`.
+
+### 3. Configuration (.env)
+
+Create a file named `.env` at the project root (`project-fall25-darbyatNE/`). This file is required to connect to the PJM Data API, the AWS RDS instance, and map services.
+
+**Add the following keys to your `.env` file:**
+```ini
+PJM_API_KEY=your_pjm_api_key_here
+USER=database_username
+DB_PASSWORD=database_password
+DB_NAME=database_name
+DB_HOST=aws_rds_endpoint
+DB_PORT=3306
+BACKEND_URL=http://127.0.0.1:8000
+MAP_KEY=your_maptiler_map_key
+```
+
+### 4. Environment Setup
+
+Create the Conda environment using the provided YAML file. This installs all necessary Python dependencies.
+
+```bash
+# Create the environment from file
+conda env create -f lmp_env.yml
+
+# Activate the environment
+conda activate lmp-env
+```
+
+### 5. Database Setup
+
+Any MySQL database can be used with the API scripts included in this repo. An AWS RDS MySQL instance is used by the authors. The schema for the database is detailed below:
+
+<div align="center">
+  <img src="src/img/schema.png" alt="Schema of DB" width="600">
+</div>
+
+---
+
+## 6. Populate the Data
+
+This project harnesses the **PJM Data Vault** using the **Data Miner 2** toolset. There are two methods to acquire this data: manual CSV downloads or programmatic ingestion via the PJM API.
+
+#### 1. Data Access
+*   **Manual Download (No Account Required):**  
+    All PJM data is publicly available and can be downloaded as CSV files via [PJM Data Miner 2](https://dataminer2.pjm.com/list).
+*   **Programmatic API Access (Recommended):**  
+    To automate data ingestion, you must register for a PJM account and generate a subscription key.  
+     [**PJM New User Registration Guide**](https://www.pjm.com/-/media/DotCom/etools/account-manager/new-user-registration-workflows-quick-guide-1.pdf)
+
+#### 2. Running Ingestion Scripts
+Once you have an active PJM API Key and have configured your `.env` file, you can utilize the pre-built scripts located in the `src/data` directory.
+
+**Example: Fetching Real-Time Prices**  
+The script `pjm_query_rt_lmp.py` fetches Real-Time Locational Marginal Prices (LMPs). Before running, open the file and configure the target parameters (currently lines 23–25):
+
+```python
+# Configuration Variables inside pjm_query_rt_lmp.py
+START_DATE = "2023-01-01"
+END_DATE   = "2023-12-31"
+PNODE_IDS  = [12345, 67890] # List of specific PJM Nodes
+```
+
+Run the script via terminal:
+```bash
+python src/data/pjm_query_rt_lmp.py
+```
+
+#### 3. AWS & Network Security
+If you are connecting to an AWS RDS instance or hosting the backend on EC2, you must configure the **Security Group** rules to allow traffic.
+
+*   **Inbound Rules:**
+    *   **Database (MySQL/Aurora):** Allow traffic on Port `3306`.
+    *   **API Access:** If hosting the backend remotely, allow traffic on Port `8000`.
+*   **Access Control:**
+    *   Ensure the Security Group allows traffic **only from the specific IP addresses** of the users who are pinging, filling, or querying the database.
+
+---
+
+## Running the Application
+
+1.  **Start the Observable Framework Application**  
+    Run the development server using npm:
     ```bash
-    git clone https://github.com/nudataviz/project-fall25-darbyatNE
-    cd project-fall25-darbyatNE
+    npm run dev
     ```
 
-2.  **Verify Source Directory**
-    Ensure your code is structured correctly. There should be a `src/` directory at the project root containing your `backend.py` file and a `src/static/` directory containing `index.html`.
-
-3.  **Create Environment File**
-    At the project root (`project-fall25-darbyatNE/`), create a file named `.env`. This file must contain valid connection details for the PJM API and your AWS RDS database. Add the following keys:
-    ```
-    PJM_API_KEY=pjm_api_key_here
-    USER=database_username
-    DB_PASSWORD=database_password
-    DB_NAME=database_name
-    DB_HOST=aws_rds_endpoint
-    DB_PORT=3306_MYSQL_default
-    ```
-
-4.  **Create and Activate the Conda Environment**
-    The `lmp_env.yml` file contains all necessary Python dependencies.
-    ```bash
-    conda env create -f lmp_env.yml
-    conda activate fework
-    ```
-
-### Running the Application
-
-1.  **Run the Development Server**
-    With your Conda environment activated and from the `project-fall25-darbyatNE` root directory, run the following command to start the server:
-    ```bash
-    uvicorn src.backend:app --reload
-    ```
-
-2.  **View the Application**
+2.  **Access the Dashboard**  
     Open your web browser and navigate to:
     ```
     http://127.0.0.1:8000
     ```
 
+---
 
-## Feedback
+## Feedback & Contact
 
 Feedback and suggestions are welcome! Please send your thoughts to:
-**darby.b@northeastern.edu  henshaw.b@northeastern.edu**
+*   **Ben Darby:** darby.b@northeastern.edu
+*   **Ben Henshaw:** henshaw.b@northeastern.edu
 
-
-### Where to Find More Information  
-For a detailed overview of our project, please refer to the **[`proposal.md`](proposal.md)** document in this repository.
-
----
+### Additional Documentation
+For a detailed academic overview of our methodology and project scope, please refer to the **[`proposal.md`](proposal.md)** document in this repository.

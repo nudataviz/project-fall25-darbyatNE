@@ -4,5 +4,3 @@ misc/
 __pycache__/
 static/
 node_modules/
-.observablehq/
-

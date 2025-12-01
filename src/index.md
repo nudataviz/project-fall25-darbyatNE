@@ -301,6 +301,18 @@
     width: 100%;
   }
 
+  .congestion-info-popup .maplibregl-popup-content {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #999;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .congestion-info-popup .maplibregl-popup-tip {
+    display: none; /* Hides the little triangle pointer */
+  }
+
   .c-toggle-container {
     display: flex;
     justify-content: center;
@@ -419,7 +431,8 @@ let currentIndex = 0;
 let timer = null;
 let activePriceType = 'da';
 let selectedZoneName = null; 
-let globalConstraintCache = []; 
+let globalConstraintCache = [];
+let congestionHelpPopup = null; 
 let isAverageMode = false; 
 let averageDataCache = {}; 
 let playbackSpeed = 1000;
@@ -804,11 +817,18 @@ function updateAnimation(index) {
 }
 
   // Helper: Update Border Styles 
+// Helper: Update Border Styles & Manage Congestion Popup
 function updateZoneBorders() {
     if (!map.getLayer('zoneLines')) return;
+
+    // LOGIC: Only highlight a zone if a zone is selected AND we are in Congestion Mode
+    // If we are in NET, DA, or RT mode, targetZone becomes empty, so no yellow border appears.
+    const targetZone = (activePriceType === 'congestion' && selectedZoneName) ? selectedZoneName : '';
+
+    // 1. Update Map Paint Properties
     map.setPaintProperty('zoneLines', 'line-width', 
         ['case', 
-            ['==', ['get', 'Zone_Name'], selectedZoneName || ''], 
+            ['==', ['get', 'Zone_Name'], targetZone], 
             6, 
             1.5
         ]
@@ -816,12 +836,44 @@ function updateZoneBorders() {
 
     map.setPaintProperty('zoneLines', 'line-color', 
         ['case', 
-            ['==', ['get', 'Zone_Name'], selectedZoneName || ''], 
-            '#FFFF00',
-            '#000000' 
+            ['==', ['get', 'Zone_Name'], targetZone], 
+            '#FFFF00', // Yellow
+            '#000000'  // Black
         ]
     );
+
+    // 2. Manage the Atlantic Ocean Popup
+    // Remove existing popup first
+    if (congestionHelpPopup) {
+        congestionHelpPopup.remove();
+        congestionHelpPopup = null;
+    }
+
+    // Create new popup ONLY if Congestion Mode
+    if (targetZone && targetZone !== 'PJM') {
+        congestionHelpPopup = new maplibregl.Popup({ 
+            closeButton: false, 
+            closeOnClick: false, 
+            className: 'congestion-info-popup',
+            maxWidth: '250px'
+        })
+        .setLngLat([-72, 37]) // Coordinates: Over Atlantic
+        .setHTML(`
+            <div style="font-family: sans-serif; text-align: center; color: #333;">
+                <strong style="display:block; border-bottom:1px solid #ccc; margin-bottom:8px; padding-bottom:4px; font-size:13px;">
+                    Load Congestion View
+                </strong>
+                <div style="font-size: 11px; line-height: 1.4;">
+                    The <span style="background-color: #333; color: #FFFF00; padding: 1px 4px; font-weight: bold; border-radius: 3px;">Yellow Bordered Zone</span> is the selected Load Zone.
+                    <br><br>
+                    Prices displayed are the cost to "deliver" from each zone to the selected Load Zone.
+                </div>
+            </div>
+        `)
+        .addTo(map);
+    }
 }
+
 
 // Current Filter Info
 function displayCurrentFilter(resultCount = null) {
@@ -1103,10 +1155,12 @@ map.on('click', 'zoneFill', (e) => {
 });
 
 // Price Selector Config
+// Price Selector Config
 document.querySelector('.price-selector').addEventListener('change', (e) => { 
     activePriceType = e.target.value; 
     const useNetScale = (activePriceType === 'net' || activePriceType === 'congestion');
     buildLegend(useNetScale ? NET_COLOR_SCALE : COLOR_SCALE); 
+    updateZoneBorders();
     
     if (isAverageMode) {
         renderAverageView();
@@ -1114,7 +1168,6 @@ document.querySelector('.price-selector').addEventListener('change', (e) => {
         updateAnimation(currentIndex); 
     }
 });
-
 
 // Slider Logic
 slider.oninput = (e) => { 

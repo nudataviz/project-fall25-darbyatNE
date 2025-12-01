@@ -15,30 +15,28 @@
 ## Project Overview
 
 ### Purpose
-This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify **historical analogs** ("like days") by analyzing a set of predictive features related to market prices. 
+**This application serves as a financial risk analysis tool for the PJM wholesale electricity market.**
 
-Key features analyzed include:
-*   Calendar dates & seasonality
-*   Days of the week
-*   Hours of the day
-*   Real-time transmission constraints (which cause price congestion across zones)
+Large companies often need to balance their purchases and buy extra power, but the final "delivered" price is volatile due to the distance between generation and load. Bottlenecks in the power grid—known as **"congestion"**— can be a very large, unpredictable cost, reaching up to **$100,000 an hour** in recent events for a moderately sized 200MW purchase.
 
-A critical constraint of this analysis is that all features must be known *prior* to market clearing. The resulting insights enable users to:
-1.  Better forecast zonal Locational Marginal Prices (LMPs).
-2.  Anticipate price separation (congestion) between zones.
-3.  Improve risk management and optimize bidding strategies.
+Our app uses historical price data to help users forecast that risk. The workflow allows users to:
+1.  **Select a future time period** where they anticipate needing to make a purchase.
+2.  **Look up similar system conditions** ("like days") in the past using predictive features.
+3.  **Compare known generation offers** against historical performance to determine which options are the most stable and cost-effective.
 
 ### The Problem We Address: Congestion & Basis Risk
 In ISO markets like PJM, simply securing generation to match your load does not eliminate financial risk. Market participants remain exposed to **price congestion**—the volatile price difference between where energy is generated (Supply) and where it is consumed (Demand).
 
-This "basis risk" cannot be preset. While third-party financial products exist to hedge this risk, purchasing them blindly leaves significant value on the table. 
+This "basis risk" cannot be preset. While third-party financial products exist to hedge this risk, purchasing them blindly leaves significant value on the table. To determine the true value of congestion risk, participants must understand the specific **situational context**—analyzing historical "like days" based on:
 
-To determine the true value of congestion risk, participants must understand the specific **situational context**—analyzing historical "like days" to see how the grid behaves under similar supply and demand pressures.
+*   Calendar dates & seasonality
+*   Days of the week & Hours of the day
+*   Real-time transmission constraints
 
 ### Target Audience
-This tool is designed for **Procurement Specialists, Energy Traders, Risk Managers, Market Analysts, and Curious Students** who wish to visualize complex inter-zonal relationships and historical patterns.
+This tool is designed for **Procurement Specialists, Energy Traders, Risk Managers, and Market Analysts** who wish to visualize complex inter-zonal relationships.
 
-We specifically target professionals **willing to "do the homework"**—users looking to move beyond passive reporting to actively leverage deep historical data and interactive visualizations for high-stakes decision-making in the Real-Time and Day-Ahead markets.
+We specifically target professionals **willing to "do the homework"**—  This tool is for users who aren't satisfied with just asking a broker for their take; it is for those who would rather dig into the data themselves, turning historical patterns into actionable strategies for the Real-Time and Day-Ahead markets.
 
 ---
 
@@ -62,10 +60,10 @@ The application is built on a modular architecture to ensure scalability and sep
 
 | Component | Tech Stack | Role |
 | :--- | :--- | :--- |
-| **Data Sources** | PJM Data Miner 2 & ArcGIS Online | Harnesses the PJM "Data Vault" for market data and retrieves GeoShapes for PJM zone shapes. |
-| **Database** | AWS RDS (MySQL) | Currently Stores 9GB+ of historical PJM market data. |
+| **Data Sources** | PJM Data Miner 2 & ArcGIS Online | Harnesses the PJM "Data Vault" for market data and retrieves GeoShapes for PJM zone geodata. |
+| **Database** | AWS RDS (MySQL) | Currently Storing 9GB+ of historical PJM market data. |
 | **Frontend** | Observable Framework (JS/D3) | Interactive visualizations and state management. |
-| **Mapping** | MapLibre GL JS | High-performance vector tile mapping for zone topology and ISO border identification. |
+| **Mapping** | MapLibre GL JS | High-performance vector tile mapping for zone shapes and ISO border identification. |
 | **Backend** | Python (FastAPI) | Handles API requests and executes complex SQL queries. |
 | **Version Control** | GitHub | Source code management and team collaboration. |
 
@@ -78,7 +76,7 @@ Follow these instructions to clone the repository, configure the environment, an
 ### 1. Prerequisites
 Before you begin, ensure you have the following installed on your system:
 - [Git](https://git-scm.com/)
-- [Conda](https://docs.conda.io/en/latest/miniconda.html) (Miniconda or Anaconda)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html)
 - [Node.js & npm](https://nodejs.org/) (Required for Observable Framework)
 
 ### 2. Installation
@@ -182,7 +180,7 @@ If you are connecting to an AWS RDS instance or hosting the backend on EC2, you 
 2.  **Access the Dashboard**  
     Open your web browser and navigate to:
     ```
-    http://127.0.0.1:8000
+    http://127.0.0.1:3000
     ```
 
 ---

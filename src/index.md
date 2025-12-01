@@ -36,7 +36,7 @@
     <div id="map"></div>
     <div id="legend"></div>
     <div id="controls-container">
-      <button id="filter-btn">Filter</button>
+      <button id="filter-btn">Δ Filter</button>
       <button id="avg-btn">Avg Price View</button>
       <div id="speed-box">
           <label>Speed</label>

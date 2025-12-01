@@ -8,8 +8,8 @@ export default {
   // 1. Define Pages to control Sidebar Names
   pages: [
     {
-      name: "Build A Filter", // Sidebar Label (Your Request)
-      path: "/picker"         // Points to picker.md
+      name: "Build A Filter", 
+      path: "/picker"
     }
   ],
 

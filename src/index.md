@@ -37,7 +37,7 @@
     <div id="legend"></div>
     <div id="controls-container">
       <button id="filter-btn">Filter</button>
-      <button id="avg-btn">Range Avg</button>
+      <button id="avg-btn">Avg Price View</button>
       <div id="speed-box">
           <label>Speed</label>
           <input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000" title="Playback Speed (ms)">
@@ -194,7 +194,6 @@
 
   #map-container { flex: 1; height: 100%; display: flex; flex-direction: column; position: relative; min-width: 0; }
   #map { height: calc(100% - 40px); width: 100%; }
-  
   #controls-container { height: 40px; display: flex; align-items: center; padding: 0 15px; border-top: 1px solid #ccc; background: #f8f9fa; gap: 10px; }
   
   /* Button Styling */
@@ -204,6 +203,12 @@
     margin-right: 5px;
     font-size: 13px;
   }
+
+  #avg-btn {
+  font-size: 11px !important;     
+  padding: 6px 4px !important;   
+                
+}
 
   /* Playback Speed Styling */
   #speed-box {
@@ -501,7 +506,7 @@ function calculateZoneAverages() {
                 da: s.da / s.count,
                 rt: s.rt / s.count,
                 net: s.net / s.count,
-                congestion: s.congestion / s.count // Calculate Avg
+                congestion: s.congestion / s.count 
             };
         }
     });
@@ -518,19 +523,34 @@ function renderAverageView() {
     setConstraintModeUI('global');
     renderConstraintList(globalConstraintCache, 'Avg $/MWHr');
 
-    // 1. Ensure we have data
+    // 1. Check for data
     if (Object.keys(averageDataCache).length === 0) {
         averageDataCache = calculateZoneAverages();
     }
 
     const currentScale = (activePriceType === 'net' || activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
+    const getValForZone = (zName) => {
+        if (!averageDataCache[zName]) return null;
+
+        if (activePriceType === 'congestion') {
+            if (!selectedZoneName || !averageDataCache[selectedZoneName]) return null;
+            if (zName === selectedZoneName) return 0;
+
+            const sourcePrice = averageDataCache[selectedZoneName].rt; // Selected (Load Zone)
+            const sinkPrice = averageDataCache[zName].rt;             // Target (Gen Zone)
+            
+            return sinkPrice - sourcePrice;
+        } 
+        else {
+            // Standard lookup for da, rt, net
+            return averageDataCache[zName][activePriceType];
+        }
+    };
 
     // 2. Update Map Colors
     for (const zone in averageDataCache) {
-        // SAFETY CHECK: Ensure we access the specific price type (e.g., .rt, .da)
-        const zoneData = averageDataCache[zone];
-        const val = zoneData ? zoneData[activePriceType] : null;
+        const val = getValForZone(zone);
         
         if (val !== null && val !== undefined) {
             colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
@@ -542,18 +562,16 @@ function renderAverageView() {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // 3. Calculate PJM System Average
+    // 3. Calculate PJM System Average (for sidebar header)
     let pjmSum = 0;
     let pjmCount = 0;
     
     Object.keys(averageDataCache).forEach(zone => {
-        const zoneObj = averageDataCache[zone];
-        const val = zoneObj ? zoneObj[activePriceType] : null;
+        const val = getValForZone(zone);
 
         if (val !== undefined && val !== null) {
-            if (activePriceType === 'congestion' && zone === selectedZoneName) {
-                return; 
-            }
+            if (activePriceType === 'congestion' && zone === selectedZoneName) return;
+            
             pjmSum += val;
             pjmCount++;
         }
@@ -571,8 +589,7 @@ function renderAverageView() {
         if (zName === 'PJM') {
             val = pjmAvg; 
         } else {
-            const zData = averageDataCache[zName];
-            val = zData ? zData[activePriceType] : null;
+            val = getValForZone(zName);
         }
 
         if (val !== null && val !== undefined) {
@@ -584,6 +601,8 @@ function renderAverageView() {
         }
     });
 }
+
+
 
 // Query Operation
 async function fetchLmpData() {
@@ -675,13 +694,34 @@ function updateAnimation(index) {
     });
 
     timeDisplay.innerText = `${dateStr} | ${hourStr}`;
-
-    // Update Map Zone Colors
     const currentScale = (activePriceType === 'net' || activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
+    
+    // 1. Get Reference Price (Source / Selected Zone)
+    let sourcePriceCurrentHour = 0;
+    if (activePriceType === 'congestion' && selectedZoneName) {
+        if (data.readings[selectedZoneName]) {
+            sourcePriceCurrentHour = data.readings[selectedZoneName].rt || 0;
+        }
+    }
+
+    // 2. Update Map Zone Colors
     const colorExpression = ['case'];
     for (const zone in data.readings) {
-        const val = data.readings[zone] ? data.readings[zone][activePriceType] : null;
-        colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+        const r = data.readings[zone];
+        let val = null;
+
+        if (activePriceType === 'congestion') {
+            if (selectedZoneName && r) {
+                // Math: Target (Sink) - Selected (Source)
+                val = (r.rt || 0) - sourcePriceCurrentHour;
+            }
+        } else {
+            val = r ? r[activePriceType] : null;
+        }
+
+        if (val !== null) {
+            colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+        }
     }
     colorExpression.push('#cccccc');
     
@@ -689,15 +729,9 @@ function updateAnimation(index) {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // Hourly Avgs Calc for Animation
+    // 3. Hourly Avgs Calc for Sidebar
     let pjmSum = 0;
     let pjmCount = 0;
-    let sinkPriceCurrentHour = 0;
-    if (activePriceType === 'congestion' && selectedZoneName) {
-        if (data.readings[selectedZoneName]) {
-            sinkPriceCurrentHour = data.readings[selectedZoneName].rt;
-        }
-    }
 
     Object.keys(data.readings).forEach(zone => {
         const r = data.readings[zone];
@@ -705,8 +739,10 @@ function updateAnimation(index) {
             let val = 0;
 
             if (activePriceType === 'congestion') {
-                if (zone === selectedZoneName || !selectedZoneName) return; 
-                val = sinkPriceCurrentHour - (r.rt || 0); 
+                if (!selectedZoneName) return; 
+                if (zone === selectedZoneName) return;
+                // Math: Target (Sink) - Selected (Source)
+                val = (r.rt || 0) - sourcePriceCurrentHour;
             } 
             else if (r[activePriceType] !== undefined) {
                 val = r[activePriceType];
@@ -719,7 +755,7 @@ function updateAnimation(index) {
     const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
 
 
-    // Update Sidebar: PJM Zones
+    // 4. Update Sidebar Text
     document.querySelectorAll('.zone-item').forEach(item => {
         const zName = item.dataset.zoneName;
         const priceSpan = item.querySelector('.zone-price');
@@ -729,7 +765,13 @@ function updateAnimation(index) {
         if (zName === 'PJM') {
             val = pjmAvg; 
         } else {
-            val = data.readings[zName] ? data.readings[zName][activePriceType] : null;
+            if (activePriceType === 'congestion') {
+                if (selectedZoneName && data.readings[zName]) {
+                     val = (data.readings[zName].rt || 0) - sourcePriceCurrentHour;
+                }
+            } else {
+                val = data.readings[zName] ? data.readings[zName][activePriceType] : null;
+            }
         }
 
         if (val !== null && val !== undefined) {
@@ -741,7 +783,7 @@ function updateAnimation(index) {
         }
     });
 
-    // Update Constraints: Switch to Current Hour & Show Top 10
+    // Update Constraints
     setConstraintModeUI('current');
     
     const currentLmpIso = data.datetime.replace(' ', 'T'); 
@@ -759,6 +801,26 @@ function updateAnimation(index) {
     .slice(0, 10); 
 
     renderConstraintList(activeConstraints, 'Shadow Price');
+}
+
+  // Helper: Update Border Styles 
+function updateZoneBorders() {
+    if (!map.getLayer('zoneLines')) return;
+    map.setPaintProperty('zoneLines', 'line-width', 
+        ['case', 
+            ['==', ['get', 'Zone_Name'], selectedZoneName || ''], 
+            6, 
+            1.5
+        ]
+    );
+
+    map.setPaintProperty('zoneLines', 'line-color', 
+        ['case', 
+            ['==', ['get', 'Zone_Name'], selectedZoneName || ''], 
+            '#FFFF00',
+            '#000000' 
+        ]
+    );
 }
 
 // Current Filter Info
@@ -788,19 +850,19 @@ function displayCurrentFilter(resultCount = null) {
 
     // 3. Hours Calculation Logic
     let hoursValue = 0;
-    let hoursColor = "#333"; // Default black
+    let hoursColor = "#333"; 
     let labelText = "Total Hours";
 
     if (resultCount === 0) {
         hoursValue = "0";
-        hoursColor = "#dc3545"; // Red for no results
+        hoursColor = "#dc3545"; 
     } 
     else if (typeof resultCount === 'number') {
         hoursValue = resultCount;
-        hoursColor = "#007bff"; // Blue for confirmed count
+        hoursColor = "#007bff"; 
     } 
     else {
-        // Estimate based on calendar selection
+        // Estimated hours based on calendar selection
         let estimated = 0;
         const start = new Date(filter.startDate);
         const end = new Date(filter.endDate);
@@ -825,7 +887,6 @@ function displayCurrentFilter(resultCount = null) {
     container.style.display = "flex";
     container.style.justifyContent = "space-between";
     container.style.alignItems = "center";
-
     container.innerHTML = `
         <!-- Left Side: Filter Details -->
         <div style="flex: 1; min-width: 0; padding-right: 10px;">
@@ -857,7 +918,6 @@ function displayCurrentFilter(resultCount = null) {
             </span>
         </div>`;
 }
-
 
 function buildLegend(currentScale) {
     const container = document.getElementById('legend');
@@ -921,33 +981,68 @@ map.on('load', async () => {
     
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
     
-    map.on('mousemove', 'zoneFill', (e) => {
-        if (!e.features[0]) return;
-        const zone = e.features[0].properties.Zone_Name;
-        let lmp = null;
-        let labelPrefix = '';
+    // Mouse Hover Listener
+map.on('mousemove', 'zoneFill', (e) => {
+    if (!e.features[0]) return;
+    
+    const zone = e.features[0].properties.Zone_Name;
+    let val = null;
+    let labelPrefix = '';
+    let zoneData = null;
+    let sourceData = null;
 
-        if (isAverageMode && averageDataCache[zone]) {
-            lmp = averageDataCache[zone][activePriceType];
-            labelPrefix = 'Avg ';
-        } else if (!isAverageMode && timeSeriesData.length > 0) {
-            const lmpData = timeSeriesData[currentIndex]?.readings[zone];
-            lmp = lmpData ? lmpData[activePriceType] : null;
+    if (isAverageMode) {
+        zoneData = averageDataCache[zone];
+        if (selectedZoneName) sourceData = averageDataCache[selectedZoneName];
+        labelPrefix = 'Avg ';
+    } 
+    else if (timeSeriesData.length > 0) {
+        const step = timeSeriesData[currentIndex];
+        if (step) {
+            zoneData = step.readings[zone];
+            if (selectedZoneName) sourceData = step.readings[selectedZoneName];
+        }
+    }
+
+    // 2. Calculate the Value
+    if (activePriceType === 'congestion') {
+        // Logic: Sink (Seelcted) - Source (Others)
+        if (selectedZoneName && zoneData && sourceData) {
+            // Use RT price for congestion calculation
+            const sinkPrice = zoneData.rt || 0;
+            const sourcePrice = sourceData.rt || 0;
+            val = sinkPrice - sourcePrice;
+        } 
+        else if (zone === selectedZoneName) {
+            val = 0.00; // Congestion to itself is 0
         }
 
-        // Updated Label Logic
-        let typeLabel = 'NET';
-        if (activePriceType === 'da') typeLabel = 'Day-Ahead';
-        else if (activePriceType === 'rt') typeLabel = 'Real-Time';
-        else if (activePriceType === 'congestion') typeLabel = 'Congestion';
+    } 
+    else {
+        val = zoneData ? zoneData[activePriceType] : null;
+    }
 
-        const finalLabel = `${labelPrefix}${typeLabel}`;
-        
-        popup.setLngLat(e.lngLat)
-             .setHTML(`<div><strong>${zone}</strong><br>${finalLabel}: ${lmp != null ? '$' + lmp.toFixed(2) : 'N/A'}</div>`)
-             .addTo(map);
-    });
+    // 3. Determine Label Text
+    let typeLabel = 'NET';
+    if (activePriceType === 'da') typeLabel = 'Day-Ahead';
+    else if (activePriceType === 'rt') typeLabel = 'Real-Time';
+    else if (activePriceType === 'congestion') typeLabel = 'Congestion';
 
+    const finalLabel = `${labelPrefix}${typeLabel}`;
+    
+    // 4. Set Popup
+    popup.setLngLat(e.lngLat)
+            .setHTML(`
+                <div style="font-family:sans-serif; padding:4px;">
+                    <strong style="font-size:13px;">${zone}</strong><br>
+                    <span style="color:#555; font-size:11px;">${finalLabel}:</span> 
+                    <span style="font-weight:bold; font-size:13px;">
+                        ${val !== null ? '$' + val.toFixed(2) : 'N/A'}
+                    </span>
+                </div>
+            `)
+            .addTo(map);
+});
     
     map.on('mouseleave', 'zoneFill', () => { popup.remove(); });
 });
@@ -956,26 +1051,56 @@ map.on('load', async () => {
 zoneListElement.addEventListener('click', (e) => {
     const item = e.target.closest('.zone-item');
     if (!item) return;
+    
     document.querySelectorAll('.zone-item').forEach(i => i.classList.remove('selected'));
     item.classList.add('selected');
+    
     const zName = item.dataset.zoneName;
     const zData = zones.find(z => z.name === zName);
     
     if (zName === 'PJM') { 
         map.flyTo({ center: [-82, 38.6], zoom: 5.3, pitch: 10 }); 
+        selectedZoneName = null;
+        updateZoneBorders();     
     } 
     else if (zData) { 
         map.flyTo({ center: zData.center, zoom: 5.9, pitch: 20 }); 
         selectedZoneName = zName;
-        if (map.getLayer('zoneLines')) {
-            map.setPaintProperty('zoneLines', 'line-width', 
-                ['case', ['==', ['get', 'Zone_Name'], selectedZoneName], 6, 1.5]
-            );
+        updateZoneBorders();
+
+        // Recalculate if in Congestion Mode
+        if (activePriceType === 'congestion') {
+            if (isAverageMode) renderAverageView();
+            else updateAnimation(currentIndex);
         }
     }
 });
 
-map.on('click', 'zoneFill', (e) => { if (e.features.length) { const name = e.features[0].properties.Zone_Name; document.querySelector(`.zone-item[data-zone-name="${name}"]`)?.click(); }});
+// Map Click Listener (Handles Shift+Click for Congestion)
+map.on('click', 'zoneFill', (e) => {
+    if (!e.features.length) return;
+    
+    const clickedZone = e.features[0].properties.Zone_Name;
+    if (e.originalEvent.shiftKey && activePriceType === 'congestion') {
+        selectedZoneName = clickedZone;
+        updateZoneBorders();
+        if (isAverageMode) {
+            renderAverageView();
+        } else {
+            updateAnimation(currentIndex);
+        }
+        
+        new maplibregl.Popup({ closeButton: false })
+            .setLngLat(e.lngLat)
+            .setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513;">New Reference: ${clickedZone}</div>`)
+            .addTo(map);
+
+        return;
+    }
+
+    const sidebarItem = document.querySelector(`.zone-item[data-zone-name="${clickedZone}"]`);
+    if (sidebarItem) sidebarItem.click();
+});
 
 // Price Selector Config
 document.querySelector('.price-selector').addEventListener('change', (e) => { 

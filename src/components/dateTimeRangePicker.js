@@ -6,8 +6,8 @@ export function dateTimeRangePicker(options = {}) {
     height = 400,
     initialStartTime = 0,
     initialEndTime = 24,
-    initialStartDate = new Date(2025, 6, 1),
-    initialEndDate = new Date(2025, 6, 4),
+    initialStartDate = new Date(2025, 7, 1),
+    initialEndDate = new Date(2025, 7, 4),
     initialDaysOfWeek = [true, true, true, true, true, true, true],
     constraintList = [],
     initialConstraint = ""
@@ -31,19 +31,19 @@ export function dateTimeRangePicker(options = {}) {
   // --- HEADER ---
   const header = container.append("div").style("margin-bottom", "20px");
 
-  // --- 🟢 NEW: MAIN CONTROL FRAME (The Wrapper) ---
+  // --- Main Control Frame  ---
   const controlFrame = container.append("div")
-    .style("background-color", "#f4f4f4") // Light Grey Background
-    .style("border", "2px solid black")    // 2px Black Border
+    .style("background-color", "#f4f4f4") 
+    .style("border", "2px solid black")    
     .style("border-radius", "8px")
     .style("padding", "15px")
     .style("margin-bottom", "20px");
 
-  // 0. Constraint Section (Attached to controlFrame)
+  // 0. Constraint Section
   const constraintSection = controlFrame.append("div")
     .style("margin-bottom", "10px")
     .style("padding", "10px")
-    .style("background-color", "#ffffff") // White to pop against grey frame
+    .style("background-color", "#e6f7ff")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px");
 
@@ -77,11 +77,11 @@ export function dateTimeRangePicker(options = {}) {
     .text(d => d === "" ? "-- Select a Constraint OR Leave Empty --" : d)
     .property("selected", d => d === selectedConstraint);
 
-  // 1. Date Section (Attached to controlFrame)
+  // 1. Date Section
   const dateSection = controlFrame.append("div")
     .style("margin-bottom", "10px")
     .style("padding", "10px")
-    .style("background-color", "#ffffff")
+    .style("background-color", "#e6f7ff")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px");
 
@@ -112,11 +112,11 @@ export function dateTimeRangePicker(options = {}) {
       updateDisplay();
     });
 
-  // 2. Days Section (Attached to controlFrame)
+  // 2. Days Section
   const daysSection = controlFrame.append("div")
     .style("margin-bottom", "10px")
     .style("padding", "10px")
-    .style("background-color", "#ffffff")
+    .style("background-color", "#e6f7ff")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px");
 
@@ -143,11 +143,11 @@ export function dateTimeRangePicker(options = {}) {
       .on("mouseleave", function() { d3.select(this).style("opacity", "1"); });
   });
 
-  // 3. Time Section (Attached to controlFrame)
+  // 3. Time Section
   const timeSection = controlFrame.append("div")
     .style("margin-bottom", "10px")
     .style("padding", "10px")
-    .style("background-color", "#ffffff")
+    .style("background-color", "#e6f7ff")
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px");
 
@@ -173,8 +173,7 @@ export function dateTimeRangePicker(options = {}) {
     .style("font-weight", "500")
     .style("color", "#333");
 
-  // Adjust SVG width to fit inside the padded frame
-  const svgWidth = (width - 30) - 40; // Width - FramePadding - InnerPadding
+  const svgWidth = (width - 30) - 40; 
   const svgHeight = 40, margin = { top: 15, right: 20, bottom: 20, left: 20 };
   const innerWidth = svgWidth - margin.left - margin.right, innerHeight = svgHeight - margin.top - margin.bottom;
   const svg = timeSection.append("svg").attr("width", svgWidth).attr("height", svgHeight);
@@ -208,15 +207,15 @@ export function dateTimeRangePicker(options = {}) {
     rangeRect.attr("x", x1).attr("width", x2 - x1);
   }
 
-  // 4. Current Filter Display (Attached to controlFrame)
+  // 4. Current Filter Display 
   const currentFilterDisplay = controlFrame.append("div")
     .style("margin-bottom", "10px")
     .style("padding", "10px")
-    .style("background-color", "#e7f3ff") 
+    .style("background-color", "#dbeafe") 
     .style("border-radius", "8px")
-    .style("border", "2px solid #007bff");
+    .style("border", "1px solid #007bff");
 
-  // 5. Action Buttons (Attached to controlFrame)
+  // 5. Action Buttons 
   const actionContainer = controlFrame.append("div")
     .style("display", "flex")
     .style("justify-content", "flex-start")
@@ -257,7 +256,7 @@ export function dateTimeRangePicker(options = {}) {
     .on("mouseenter", function() { d3.select(this).style("background-color", "#138496"); })
     .on("mouseleave", function() { d3.select(this).style("background-color", "#17a2b8"); });
 
-  // 6. Saved Filters List (Attached to Main Container, outside the frame)
+  // 6. Saved Filters List
   const savedSection = container.append("div").style("margin-top", "20px");
   savedSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "14px").text("Saved Filters");
   const savedList = savedSection.append("div").style("display", "flex").style("flex-direction", "column").style("gap", "10px");

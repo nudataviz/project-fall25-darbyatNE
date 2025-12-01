@@ -1,6 +1,8 @@
-# Ignore the Python cache directory
-__pycache__/
-
-# Ignore miscellaneous files directory
+.env
 misc/
-Miniconda3-latest-Linux-x86_64.sh
+*.pyc
+__pycache__/
+static/
+node_modules/
+.observablehq/
+

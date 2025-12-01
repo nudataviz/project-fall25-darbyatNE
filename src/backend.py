@@ -46,7 +46,7 @@ class LmpRangeQuery(BaseModel):
     days_of_week: Optional[List[int]] = None
     start_hour: Optional[int] = None
     end_hour: Optional[int] = None
-    selected_constraint: Optional[str] = None
+    monitored_facility: Optional[str] = None
 
 # PJM Zone Shapes Endpoint
 @app.get("/api/zones")
@@ -77,15 +77,18 @@ def get_zones(db: Session = Depends(get_db)):
 @app.post("/api/lmp/range")
 def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     try:
-        # Params Setup
+        # Params
         params = {}
         start_datetime_obj = datetime.strptime(query.start_day, '%Y-%m-%d')
         end_datetime_obj = datetime.strptime(query.end_day, '%Y-%m-%d') + timedelta(days=1)
-        
         params["start_dt"] = start_datetime_obj
         params["end_dt"] = end_datetime_obj
+        params["start_hour"] = query.start_hour
+        params["end_hour"] = query.end_hour
 
-        # 2. Base LMP Query (Removed hardcoded Hour filters)
+        # --- BASE QUERY STRINGS ---
+        
+        # LMP Query 
         lmp_query_str = """
             SELECT
                 z.Transact_Z,
@@ -103,9 +106,11 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
             WHERE
                 da.datetime_beginning_ept >= :start_dt AND da.datetime_beginning_ept < :end_dt
+                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour
+                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour
         """
 
-        # 2. Base Constraints Query (Removed hardcoded Hour filters)
+        # Constraints Query
         constraints_query_str = """
             SELECT
                 DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') AS hour_beginning,
@@ -115,29 +120,45 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 electric_data.pjm_binding_constraints
             WHERE
                 datetime_beginning_ept >= :start_dt AND datetime_beginning_ept < :end_dt
+                AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour
+                AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour
         """
 
-        # 3. Dynamic Filtering Logic
-        
-        # Filter: Start Hour
-        if query.start_hour is not None:
-            lmp_query_str += " AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour"
-            constraints_query_str += " AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour"
-            params["start_hour"] = query.start_hour
+        # --- DYNAMIC FILTERS ---
 
-        # Filter: End Hour
-        if query.end_hour is not None:
-            lmp_query_str += " AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour"
-            constraints_query_str += " AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour"
-            params["end_hour"] = query.end_hour
-
-        # Filter: Days of Week
+        # 1. Day of Week Filter
         if query.days_of_week:
-            lmp_query_str += " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
-            constraints_query_str += " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
+            dow_clause_da = " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
+            dow_clause_con = " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
+            
+            lmp_query_str += dow_clause_da
+            constraints_query_str += dow_clause_con
+            
             params["days_of_week"] = tuple(query.days_of_week)
 
-        # Order and Group (Append to end of string)
+        # 2. Selected Constraint Filter
+        # 🚨 FIX: Use 'query.monitored_facility' (Matches Pydantic Model)
+        if query.monitored_facility:
+            # We create a subquery to find the HOURS where the specific constraint was active.
+            subquery = """
+                SELECT DISTINCT DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00')
+                FROM electric_data.pjm_binding_constraints
+                WHERE monitored_facility = :monitored_facility
+            """
+            
+            # Apply filter to LMP Data (Show LMP only for hours where constraint existed)
+            lmp_query_str += f" AND da.datetime_beginning_ept IN ({subquery})"
+            
+            # Apply filter to Constraints Data (Show all constraints only for hours where target constraint existed)
+            # We format the outer table's timestamp to match the subquery's hourly format
+            constraints_query_str += f" AND DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') IN ({subquery})"
+            
+            # 🚨 FIX: Map the param correctly
+            params["monitored_facility"] = query.monitored_facility
+
+        # --- ORDER AND EXECUTE ---
+
+        # Order and Group
         lmp_query_str += " ORDER BY z.Transact_Z, da.datetime_beginning_ept;"
         constraints_query_str += " GROUP BY hour_beginning, monitored_facility ORDER BY hour_beginning, monitored_facility;"
 
@@ -182,6 +203,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD.")
     except Exception as e:
+        # Check your terminal for this log if it fails again!
         print(f"An unexpected server error occurred while fetching LMP data: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred processing your request.")
     

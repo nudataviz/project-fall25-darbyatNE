@@ -6,9 +6,11 @@ export function dateTimeRangePicker(options = {}) {
     height = 400,
     initialStartTime = 0,
     initialEndTime = 24,
-    initialStartDate = new Date(),
-    initialEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    initialDaysOfWeek = [true, true, true, true, true, true, true]
+    initialStartDate = new Date(2025, 6, 1),
+    initialEndDate = new Date(2025, 6, 4),
+    initialDaysOfWeek = [true, true, true, true, true, true, true],
+    constraintList = [],
+    initialConstraint = ""
   } = options;
 
   const container = d3.create("div")
@@ -21,6 +23,7 @@ export function dateTimeRangePicker(options = {}) {
   let startDate = new Date(initialStartDate);
   let endDate = new Date(initialEndDate);
   let daysOfWeek = [...(initialDaysOfWeek || [true, true, true, true, true, true, true])];
+  let selectedConstraint = initialConstraint || "";
   let savedFilters = [];
 
   const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -28,20 +31,61 @@ export function dateTimeRangePicker(options = {}) {
   // --- SECTIONS ---
   const header = container.append("div").style("margin-bottom", "20px");
 
+  // 0. Constraint Section (New)
+  const constraintSection = container.append("div")
+    .style("margin-bottom", "5px")
+    .style("padding", "8px")
+    .style("background-color", "#f0f0f0") 
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px");
+
+  constraintSection.append("div")
+    .style("font-weight", "bold")
+    .style("font-size", "18px")
+    .style("margin-bottom", "4px")
+    .style("color", "#333")
+    .text("PJM Transmission Constraints");
+
+  const constraintSelect = constraintSection.append("select")
+    .style("width", "100%")
+    .style("font-size", "16px")
+    .style("padding", "2px")
+    .style("margin", "0")
+    .on("change", function() {
+        selectedConstraint = this.value;
+        updateDisplay();
+    });
+
+  // Default/empty option
+  let displayList = [...constraintList];
+  if (displayList.length === 0 || displayList[0] !== "") {
+      displayList.unshift("");
+  }
+
+  constraintSelect.selectAll("option")
+    .data(displayList)
+    .enter()
+    .append("option")
+    .attr("value", d => d)
+    .text(d => d === "" ? "-- Select a Constraint OR Leave Empty --" : d)
+    .property("selected", d => d === selectedConstraint);
+
   // 1. Date Section
   const dateSection = container.append("div")
-    .style("margin-bottom", "20px")
-    .style("padding", "15px")
-    .style("background-color", "#f8f9fa") 
-    .style("border-radius", "8px");
+    .style("margin-bottom", "5px")
+    .style("padding", "8px")
+    .style("background-color", "#f0f0f0")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px");
 
-  dateSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "14px").text("Date Range");
+  dateSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "18px").text("Date Range");
   const dateInputs = dateSection.append("div").style("display", "flex").style("gap", "15px").style("align-items", "center");
 
   dateInputs.append("label").style("font-weight", "500").text("Start:");
   const startDateInput = dateInputs.append("input")
     .attr("type", "date")
     .attr("value", formatDateForInput(startDate))
+    .style("font-size", "16px")
     .style("padding", "6px").style("border", "1px solid #ccc").style("border-radius", "4px")
     .on("change", function() {
       const parts = this.value.split('-');
@@ -53,6 +97,7 @@ export function dateTimeRangePicker(options = {}) {
   const endDateInput = dateInputs.append("input")
     .attr("type", "date")
     .attr("value", formatDateForInput(endDate))
+    .style("font-size", "16px")
     .style("padding", "6px").style("border", "1px solid #ccc").style("border-radius", "4px")
     .on("change", function() {
       const parts = this.value.split('-');
@@ -62,12 +107,13 @@ export function dateTimeRangePicker(options = {}) {
 
   // 2. Days Section
   const daysSection = container.append("div")
-    .style("margin-bottom", "20px")
-    .style("padding", "15px")
-    .style("background-color", "#f8f9fa")
-    .style("border-radius", "8px");
+    .style("margin-bottom", "5px")
+    .style("padding", "8px")
+    .style("background-color", "#f0f0f0")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px");
 
-  daysSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "14px").text("Days of Week");
+  daysSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "18px").text("Days of Week");
   const daysContainer = daysSection.append("div").style("display", "flex").style("gap", "10px").style("flex-wrap", "wrap");
 
   const dayButtons = dayLabels.map((label, i) => {
@@ -92,13 +138,34 @@ export function dateTimeRangePicker(options = {}) {
 
   // 3. Time Section
   const timeSection = container.append("div")
-    .style("margin-bottom", "20px")
-    .style("padding", "15px")
-    .style("background-color", "#f8f9fa") 
-    .style("border-radius", "8px");
+    .style("margin-bottom", "5px")
+    .style("padding", "8px")
+    .style("background-color", "#f0f0f0")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px");
 
-  timeSection.append("h4").style("margin", "0 0 10px 0").style("font-size", "14px").text("Time Range");
-  const timeDisplay = timeSection.append("div").style("margin-bottom", "15px").style("font-size", "16px").style("font-weight", "500").style("color", "#333");
+  // Flex layout for Time Section Header
+  const timeHeaderBox = timeSection.append("div")
+    .style("display", "flex")
+    .style("flex-wrap", "wrap")
+    .style("align-items", "center")
+    .style("gap", "10px")
+    .style("padding-bottom", "4px");
+
+  timeHeaderBox.append("div")
+    .style("width", "100%")
+    .style("margin-bottom", "2px")
+    .style("font-size", "18px")
+    .style("font-weight", "bold")
+    .text("Time Range");
+  
+  const timeDisplay = timeHeaderBox.append("div")
+    .style("flex", "1")
+    .style("min-width", "150px")
+    .style("margin-top", "0")
+    .style("font-size", "18px")
+    .style("font-weight", "500")
+    .style("color", "#333");
 
   const svgWidth = width - 60, svgHeight = 80, margin = { top: 20, right: 20, bottom: 30, left: 20 };
   const innerWidth = svgWidth - margin.left - margin.right, innerHeight = svgHeight - margin.top - margin.bottom;
@@ -141,20 +208,16 @@ export function dateTimeRangePicker(options = {}) {
     .style("border-radius", "8px")
     .style("border", "2px solid #007bff");
 
-  // ============================================================
-  // 🔘 ACTION BUTTONS (Save & Map Data)
-  // ============================================================
   const actionContainer = container.append("div")
     .style("display", "flex")
-    // PADDING: 0 (top/bottom) 50px (left/right) -> Makes buttons narrower
-    .style("padding", "0 50px")  
+    .style("justify-content", "flex-start") // 1. Moves buttons to the Left
+    .style("gap", "20px")                   // 2. Sets spacing between buttons
     .style("margin-bottom", "20px");
 
   // Save Button
   actionContainer.append("button")
-    .style("flex", "1")
-    .style("margin-right", "20px") // 20px Space between buttons
-    .style("padding", "12px 6px")
+    .style("width", "140px")                // 3. Fixed, smaller width (removed flex: 1)
+    .style("padding", "10px 6px")
     .style("background-color", "#28a745") 
     .style("color", "white")
     .style("border", "none")
@@ -167,10 +230,10 @@ export function dateTimeRangePicker(options = {}) {
     .on("mouseenter", function() { d3.select(this).style("background-color", "#218838"); })
     .on("mouseleave", function() { d3.select(this).style("background-color", "#28a745"); });
 
-  // Map Data Button (Triggers 'apply' event)
+  // Map Data Button
   actionContainer.append("button")
-    .style("flex", "1")
-    .style("padding", "12px 12px")
+    .style("width", "140px")                // 3. Fixed, smaller width
+    .style("padding", "10px 6px")
     .style("background-color", "#17a2b8") 
     .style("color", "white")
     .style("border", "none")
@@ -180,7 +243,6 @@ export function dateTimeRangePicker(options = {}) {
     .style("cursor", "pointer")
     .text("🗺️ Map Data") 
     .on("click", function() {
-        // 🚀 Dispatches the event to the parent page
         container.node().dispatchEvent(new CustomEvent('apply', {
             detail: getCurrentFilter(),
             bubbles: true
@@ -208,14 +270,26 @@ export function dateTimeRangePicker(options = {}) {
     return {
       startDate: new Date(startDate), endDate: new Date(endDate),
       startTime: startTime, endTime: endTime, daysOfWeek: [...daysOfWeek],
-      matches: function(date) { /* ... logic ... */ }
+      selectedConstraint: selectedConstraint || null
     };
   }
 
   function updateDisplay() {
     const selectedDays = dayLabels.filter((_, i) => daysOfWeek[i]).join(", ") || "None";
+    const constraintLabel = selectedConstraint ? selectedConstraint : "None";
+    
     timeDisplay.html(`<span style="color: #007bff;">${formatTime(startTime)}</span> <span style="color: #666;">—</span> <span style="color: #007bff;">${formatTime(endTime)}</span>`);
-    currentFilterDisplay.html(`<strong>Current Selection:</strong><br><div style="margin-top: 8px; line-height: 1.6;">📅 Dates: ${startDate.toLocaleDateString()} — ${endDate.toLocaleDateString()}<br>⏰ Time: ${formatTime(startTime)} — ${formatTime(endTime)}<br>📆 Days: ${selectedDays}</div>`);
+    
+    currentFilterDisplay.html(`
+        <div style="font-size: 18px; font-weight: bold;">Current Selection:</div>
+        <div style="margin-top: 8px; line-height: 1.6;">
+        📅 Dates: ${startDate.toLocaleDateString()} — ${endDate.toLocaleDateString()}<br>
+        ⏰ Time: ${formatTime(startTime)} — ${formatTime(endTime)}<br>
+        ☀️ Days: ${selectedDays}<br>
+        ⚡ Constraint: ${constraintLabel}
+        </div>
+    `);
+    
     container.node().dispatchEvent(new CustomEvent('filterchange', { detail: getCurrentFilter(), bubbles: true }));
   }
 
@@ -233,7 +307,10 @@ export function dateTimeRangePicker(options = {}) {
     savedFilters.forEach((filter, index) => {
       const filterItem = savedList.append("div").style("padding", "12px").style("background-color", "white").style("border", "1px solid #ddd").style("border-radius", "6px").style("display", "flex").style("justify-content", "space-between").style("align-items", "start");
       const selectedDays = dayLabels.filter((_, i) => filter.daysOfWeek[i]).join(", ");
-      filterItem.append("div").style("flex", "1").html(`<div style="font-weight: 500; margin-bottom: 4px;">Filter #${savedFilters.length - index}</div><div style="font-size: 12px; color: #666; line-height: 1.5;">📅 ${filter.startDate.toLocaleDateString()} — ${filter.endDate.toLocaleDateString()}<br>⏰ ${formatTime(filter.startTime)} — ${formatTime(filter.endTime)}<br>📆 ${selectedDays}</div>`);
+      const cLabel = filter.selectedConstraint ? filter.selectedConstraint : "None";
+      
+      filterItem.append("div").style("flex", "1").html(`<div style="font-weight: 500; margin-bottom: 4px;">Filter #${savedFilters.length - index}</div><div style="font-size: 12px; color: #666; line-height: 1.5;">📅 ${filter.startDate.toLocaleDateString()} — ${filter.endDate.toLocaleDateString()}<br>⏰ ${formatTime(filter.startTime)} — ${formatTime(filter.endTime)}<br>📆 ${selectedDays}<br>⚡ ${cLabel}</div>`);
+      
       const btnContainer = filterItem.append("div").style("display", "flex").style("gap", "8px");
       
       btnContainer.append("button").style("padding", "6px 12px").style("background-color", "#007bff").style("color", "white").style("border", "none").style("border-radius", "4px").style("cursor", "pointer").style("font-size", "12px").text("Load")
@@ -249,7 +326,14 @@ export function dateTimeRangePicker(options = {}) {
   function loadFilter(filter) {
     startDate = new Date(filter.startDate); endDate = new Date(filter.endDate);
     startTime = filter.startTime; endTime = filter.endTime; daysOfWeek = [...filter.daysOfWeek];
-    startDateInput.property("value", formatDateForInput(startDate)); endDateInput.property("value", formatDateForInput(endDate));
+    selectedConstraint = filter.selectedConstraint || "";
+    
+    startDateInput.property("value", formatDateForInput(startDate)); 
+    endDateInput.property("value", formatDateForInput(endDate));
+    
+    // Update Constraint Dropdown
+    constraintSelect.property("value", selectedConstraint);
+    
     dayButtons.forEach((btn, i) => { btn.style("background-color", daysOfWeek[i] ? "#007bff" : "white").style("color", daysOfWeek[i] ? "white" : "#007bff"); });
     updateTimeSlider(); updateDisplay();
   }

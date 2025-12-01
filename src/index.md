@@ -28,7 +28,7 @@
     <div id="legend"></div>
     <div id="controls-container">
       <button id="filter-btn">Filter</button>
-      <button id="avg-btn">Avg View</button>
+      <button id="avg-btn">Range Avg</button>
       <!-- Playback Speed Slider -->
       <div id="speed-box">
           <label>Speed</label>
@@ -67,7 +67,7 @@
   </div>
 </div>
 
-<!-- CSS Styling Begins -->
+<!-- CSS Styling -->
 <style>
   :root {
     --max-width: 100% !important; 
@@ -450,10 +450,11 @@ function calculateZoneAverages() {
     
     timeSeriesData.forEach(step => {
         Object.entries(step.readings).forEach(([zone, values]) => {
-            if (!sums[zone]) sums[zone] = { da: 0, rt: 0, net: 0, count: 0 };
+            if (!sums[zone]) sums[zone] = { da: 0, rt: 0, net: 0, congestion: 0, count: 0 };
             sums[zone].da += values.da || 0;
             sums[zone].rt += values.rt || 0;
             sums[zone].net += values.net || 0;
+            sums[zone].congestion += values.congestion || 0;
             sums[zone].count++;
         });
     });
@@ -465,7 +466,8 @@ function calculateZoneAverages() {
             averages[zone] = {
                 da: s.da / s.count,
                 rt: s.rt / s.count,
-                net: s.net / s.count
+                net: s.net / s.count,
+                congestion: s.congestion / s.count // Calculate Avg
             };
         }
     });
@@ -482,17 +484,23 @@ function renderAverageView() {
     setConstraintModeUI('global');
     renderConstraintList(globalConstraintCache, 'Avg $/MWHr');
 
+    // 1. Ensure we have data
     if (Object.keys(averageDataCache).length === 0) {
         averageDataCache = calculateZoneAverages();
     }
 
-    const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
+    const currentScale = (activePriceType === 'net' || activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
 
-    // Update Map Colors
+    // 2. Update Map Colors
     for (const zone in averageDataCache) {
-        const val = averageDataCache[zone][activePriceType];
-        colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+        // SAFETY CHECK: Ensure we access the specific price type (e.g., .rt, .da)
+        const zoneData = averageDataCache[zone];
+        const val = zoneData ? zoneData[activePriceType] : null;
+        
+        if (val !== null && val !== undefined) {
+            colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+        }
     }
     colorExpression.push('#cccccc');
     
@@ -500,18 +508,26 @@ function renderAverageView() {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // Calculate Avg of PJM Zones
+    // 3. Calculate PJM System Average
     let pjmSum = 0;
     let pjmCount = 0;
-    Object.values(averageDataCache).forEach(z => {
-        if (z[activePriceType] !== undefined) {
-            pjmSum += z[activePriceType];
+    
+    Object.keys(averageDataCache).forEach(zone => {
+        const zoneObj = averageDataCache[zone];
+        const val = zoneObj ? zoneObj[activePriceType] : null;
+
+        if (val !== undefined && val !== null) {
+            if (activePriceType === 'congestion' && zone === selectedZoneName) {
+                return; 
+            }
+            pjmSum += val;
             pjmCount++;
         }
     });
+    
     const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
 
-    // Sidebar List
+    // 4. Update Sidebar List
     document.querySelectorAll('.zone-item').forEach(item => {
         const zName = item.dataset.zoneName;
         const priceSpan = item.querySelector('.zone-price');
@@ -521,7 +537,8 @@ function renderAverageView() {
         if (zName === 'PJM') {
             val = pjmAvg; 
         } else {
-            val = averageDataCache[zName] ? averageDataCache[zName][activePriceType] : null;
+            const zData = averageDataCache[zName];
+            val = zData ? zData[activePriceType] : null;
         }
 
         if (val !== null && val !== undefined) {
@@ -533,6 +550,7 @@ function renderAverageView() {
         }
     });
 }
+
 
 // Query Operation
 async function fetchLmpData() {
@@ -557,7 +575,8 @@ async function fetchLmpData() {
             end_day: cleanDate(filter.endDate),
             days_of_week: selectedDayIndices,
             start_hour: parseInt(filter.startTime) || 0,
-            end_hour: parseInt(filter.endTime) || 24
+            end_hour: parseInt(filter.endTime) || 24,
+            monitored_facility: filter.selectedConstraint || null
         };
         const response = await fetch(`${API_BASE_URL}/api/lmp/range`, { 
             method: 'POST', 
@@ -618,7 +637,7 @@ function updateAnimation(index) {
     timeDisplay.innerText = `${dateStr} | ${hourStr}`;
 
     // Update Map Zone Colors
-    const currentScale = (activePriceType === 'net') ? NET_COLOR_SCALE : COLOR_SCALE;
+    const currentScale = (activePriceType === 'net' || activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
     const colorExpression = ['case'];
     for (const zone in data.readings) {
         const val = data.readings[zone] ? data.readings[zone][activePriceType] : null;
@@ -630,16 +649,36 @@ function updateAnimation(index) {
         map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
     }
 
-    // Calculate PJM Average for current hour
+    // Hourly Avgs Calc for Animation
     let pjmSum = 0;
     let pjmCount = 0;
-    Object.values(data.readings).forEach(r => {
-         if (r[activePriceType] !== undefined) {
-             pjmSum += r[activePriceType];
-             pjmCount++;
-         }
+    let sinkPriceCurrentHour = 0;
+    if (activePriceType === 'congestion' && selectedZoneName) {
+        if (data.readings[selectedZoneName]) {
+            sinkPriceCurrentHour = data.readings[selectedZoneName].rt;
+        }
+    }
+
+    Object.keys(data.readings).forEach(zone => {
+        const r = data.readings[zone];
+        if (r) {
+            let val = 0;
+
+            if (activePriceType === 'congestion') {
+                if (zone === selectedZoneName || !selectedZoneName) return; // Skip Sink
+                // Cost = Sink - Source
+                val = sinkPriceCurrentHour - (r.rt || 0); 
+            } 
+            else if (r[activePriceType] !== undefined) {
+                val = r[activePriceType];
+            }
+
+            pjmSum += val;
+            pjmCount++;
+        }
     });
     const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
+
 
     // Update Sidebar: PJM Zones
     document.querySelectorAll('.zone-item').forEach(item => {
@@ -832,9 +871,11 @@ zoneListElement.addEventListener('click', (e) => {
 
 map.on('click', 'zoneFill', (e) => { if (e.features.length) { const name = e.features[0].properties.Zone_Name; document.querySelector(`.zone-item[data-zone-name="${name}"]`)?.click(); }});
 
+// Price Selector Config
 document.querySelector('.price-selector').addEventListener('change', (e) => { 
     activePriceType = e.target.value; 
-    buildLegend(activePriceType === 'net' ? NET_COLOR_SCALE : COLOR_SCALE); 
+    const useNetScale = (activePriceType === 'net' || activePriceType === 'congestion');
+    buildLegend(useNetScale ? NET_COLOR_SCALE : COLOR_SCALE); 
     
     if (isAverageMode) {
         renderAverageView();
@@ -842,6 +883,7 @@ document.querySelector('.price-selector').addEventListener('change', (e) => {
         updateAnimation(currentIndex); 
     }
 });
+
 
 // Slider Logic
 slider.oninput = (e) => { 

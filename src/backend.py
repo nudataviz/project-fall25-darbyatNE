@@ -4,11 +4,13 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 import collections
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List
 
 load_dotenv()
 app = FastAPI()
@@ -20,6 +22,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return FileResponse("index3.html")
 
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
@@ -39,14 +47,18 @@ def get_db():
     finally:
         db.close()
 
-# 1. Modified Model: Everything optional except start/end day
 class LmpRangeQuery(BaseModel):
     start_day: str
     end_day: str
-    days_of_week: Optional[List[int]] = None
-    start_hour: Optional[int] = None
-    end_hour: Optional[int] = None
-    monitored_facility: Optional[str] = None
+    days_of_week: List[int]
+    hours: List[bool]
+    price_type: str
+
+# JSON object Endpoint
+@app.post("/api/data")
+async def get_lmp_data_as_json(query: LmpRangeQuery, db: Session = Depends(get_db)):
+    data = get_lmp_data_for_range(query, db) 
+    return data
 
 # PJM Zone Shapes Endpoint
 @app.get("/api/zones")
@@ -74,144 +86,107 @@ def get_zones(db: Session = Depends(get_db)):
         print(f"An unexpected server error occurred while fetching zones: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
+# Dynamic LMP Query Endpoint
+# In your Python script
+
 @app.post("/api/lmp/range")
 def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
     try:
-        # Params
+        # --- Hour Selection Logic ---
+        selected_hours = [i for i, selected in enumerate(query.hours) if selected]
         params = {}
+        
+        # --- Dynamic SQL Query Construction based on price_type ---
+        price_type = query.price_type.upper()
+        time_filter_alias = ""
+
+        if price_type in ['RT', 'DA']:
+            config = {
+                'RT': {'table': 'pjm_rt_hrl_lmps', 'column': 'total_lmp_rt'},
+                'DA': {'table': 'pjm_da_hrl_lmps', 'column': 'total_lmp_da'}
+            }[price_type]
+            
+            table_name = config['table']
+            price_column = config['column']
+            time_filter_alias = "l"
+            
+            base_query_str = f"""
+                SELECT
+                    z.Transact_Z,
+                    l.datetime_beginning_ept,
+                    l.{price_column} AS lmp_value
+                FROM
+                    {table_name} AS l
+                JOIN
+                    pjm_lat_long AS ll ON l.pnode_name = ll.Alt_Name
+                JOIN
+                    pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
+                WHERE
+                    l.datetime_beginning_ept >= :start_dt AND l.datetime_beginning_ept < :end_dt
+            """
+
+        elif price_type == 'NET':
+            time_filter_alias = "da"
+            base_query_str = """
+                SELECT
+                    z.Transact_Z,
+                    da.datetime_beginning_ept,
+                    (da.total_lmp_da - rt.total_lmp_rt) AS lmp_value
+                FROM
+                    pjm_da_hrl_lmps AS da
+                JOIN
+                    pjm_rt_hrl_lmps AS rt ON da.pnode_name = rt.pnode_name AND da.datetime_beginning_ept = rt.datetime_beginning_ept
+                JOIN
+                    pjm_lat_long AS ll ON da.pnode_name = ll.Alt_Name
+                JOIN
+                    pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
+                WHERE
+                    da.datetime_beginning_ept >= :start_dt AND da.datetime_beginning_ept < :end_dt
+            """
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid price_type: '{query.price_type}'. Must be 'RT', 'DA', or 'NET'.")
+
+        # --- Date and Filter Logic ---
         start_datetime_obj = datetime.strptime(query.start_day, '%Y-%m-%d')
         end_datetime_obj = datetime.strptime(query.end_day, '%Y-%m-%d') + timedelta(days=1)
         params["start_dt"] = start_datetime_obj
         params["end_dt"] = end_datetime_obj
-        params["start_hour"] = query.start_hour
-        params["end_hour"] = query.end_hour
-
-        # --- BASE QUERY STRINGS ---
         
-        # LMP Query 
-        lmp_query_str = """
-            SELECT
-                z.Transact_Z,
-                da.datetime_beginning_ept,
-                da.total_lmp_da AS lmp_da,
-                rt.total_lmp_rt AS lmp_rt,
-                (da.total_lmp_da - rt.total_lmp_rt) AS lmp_net
-            FROM
-                pjm_da_hrl_lmps AS da
-            JOIN
-                pjm_rt_hrl_lmps AS rt ON da.pnode_name = rt.pnode_name AND da.datetime_beginning_ept = rt.datetime_beginning_ept
-            JOIN
-                pjm_lat_long AS ll ON da.pnode_name = ll.Alt_Name
-            JOIN
-                pjm_zone_shapes AS z ON ll.Transact_Z = z.Transact_Z
-            WHERE
-                da.datetime_beginning_ept >= :start_dt AND da.datetime_beginning_ept < :end_dt
-                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) >= :start_hour
-                AND EXTRACT(HOUR FROM da.datetime_beginning_ept) < :end_hour
-        """
-
-        # Constraints Query
-        constraints_query_str = """
-            SELECT
-                DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') AS hour_beginning,
-                monitored_facility,
-                ROUND(SUM(shadow_price) / 12, 2) AS shadow_price
-            FROM
-                electric_data.pjm_binding_constraints
-            WHERE
-                datetime_beginning_ept >= :start_dt AND datetime_beginning_ept < :end_dt
-                AND EXTRACT(HOUR FROM datetime_beginning_ept) >= :start_hour
-                AND EXTRACT(HOUR FROM datetime_beginning_ept) < :end_hour
-        """
-
-        # --- DYNAMIC FILTERS ---
-
-        # 1. Day of Week Filter
         if query.days_of_week:
-            dow_clause_da = " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
-            dow_clause_con = " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
-            
-            lmp_query_str += dow_clause_da
-            constraints_query_str += dow_clause_con
-            
+            base_query_str += f" AND DAYOFWEEK({time_filter_alias}.datetime_beginning_ept) IN :days_of_week"
             params["days_of_week"] = tuple(query.days_of_week)
+        if selected_hours:
+            base_query_str += f" AND EXTRACT(HOUR FROM {time_filter_alias}.datetime_beginning_ept) IN :selected_hours"
+            params["selected_hours"] = tuple(selected_hours)
 
-        # 2. Selected Constraint Filter
-        if query.monitored_facility:
-            subquery = """
-                SELECT DISTINCT DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00')
-                FROM electric_data.pjm_binding_constraints
-                WHERE monitored_facility = :monitored_facility
-            """
-            
-            # Show LMP only for hours where constraint existed
-            lmp_query_str += f" AND da.datetime_beginning_ept IN ({subquery})"
-            constraints_query_str += f" AND DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00') IN ({subquery})"
-            params["monitored_facility"] = query.monitored_facility
-
-        # Order and Group
-        lmp_query_str += " ORDER BY z.Transact_Z, da.datetime_beginning_ept;"
-        constraints_query_str += " GROUP BY hour_beginning, monitored_facility ORDER BY hour_beginning, monitored_facility;"
-
-        # Execute Queries
-        lmp_result = db.execute(text(lmp_query_str), params)
-        constraints_result = db.execute(text(constraints_query_str), params)
-
-        # LMP Data Processing
-        lmp_data_by_zone = collections.defaultdict(list)
-        lmp_rows = lmp_result.fetchall()
+        base_query_str += f" ORDER BY z.Transact_Z, {time_filter_alias}.datetime_beginning_ept;"
         
-        if lmp_rows:
-            for row in lmp_rows:
-                row_dict = row._asdict()
-                lmp_data_by_zone[row_dict['Transact_Z']].append({
-                    "datetime_beginning_ept": row_dict['datetime_beginning_ept'].isoformat(),
-                    "lmp_values": {
-                        "da": row_dict['lmp_da'],
-                        "rt": row_dict['lmp_rt'],
-                        "net": row_dict['lmp_net']
-                    }
-                })
+        lmp_query = text(base_query_str)
+        lmp_result = db.execute(lmp_query, params)
+        
+        # --- Data Processing ---
+        lmp_data_by_zone = collections.defaultdict(list)
+        rows = lmp_result.fetchall() # Fetch all rows first
+        
+        if not rows:
+            # If there are no rows, raise a 404 error that FastAPI will correctly send to the browser
+            raise HTTPException(status_code=404, detail="No LMP data found for the specified criteria.")
 
-        # Constraints Data Processing
-        constraints_data = []
-        constraint_rows = constraints_result.fetchall()
-
-        for row in constraint_rows:
+        for row in rows:
             row_dict = row._asdict()
-            constraints_data.append({
-                "name": row_dict['monitored_facility'],
-                "timestamp": str(row_dict['hour_beginning']), 
-                "shadow_price": row_dict['shadow_price'] 
+            lmp_data_by_zone[row_dict['Transact_Z']].append({
+                "datetime_beginning_ept": row_dict['datetime_beginning_ept'].isoformat(),
+                "lmp_value": row_dict['lmp_value']
             })
 
-        # Response
-        return {
-            "zones": lmp_data_by_zone,
-            "constraints": constraints_data
-        }
+        return lmp_data_by_zone
 
     except ValueError:
+        # This catches errors from datetime.strptime
         raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD.")
     except Exception as e:
+        # This is a catch-all for truly unexpected errors (e.g., database connection failure)
         print(f"An unexpected server error occurred while fetching LMP data: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred processing your request.")
-    
-@app.get("/api/constraints/list")
-def get_unique_constraints(db: Session = Depends(get_db)):
-    try:
-        # Query for distinct monitored facilities aka constraints
-        query = text("""
-            SELECT DISTINCT monitored_facility 
-            FROM electric_data.pjm_binding_constraints
-            WHERE monitored_facility IS NOT NULL
-            ORDER BY monitored_facility ASC
-        """)
-        
-        result = db.execute(query)
-        constraints = [row[0] for row in result.fetchall()]
-        return {"constraints": constraints}
-        
-    except Exception as e:
-        print(f"An unexpected server error occurred while fetching constraint list: {e}")
-        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+

@@ -2,34 +2,42 @@
 <style> body { margin: 0; padding: 0; } </style>
 
 <div class="header-container">
-  <h1>Interactive PJM LMP Map</h1>
+  <h1 id="page-header-text">Interactive PJM LMP Map</h1>
 </div>
 
 <div class="top-controls-wrapper">
-      <div class="price-selector">
-      <span class="price-label">Price Type &rarr;</span>
-      <input type="radio" id="price-da" name="price-type" value="da" checked>
-      <label for="price-da">Day-Ahead</label>
-      <input type="radio" id="price-rt" name="price-type" value="rt">
-      <label for="price-rt">Real-Time</label>
-      <input type="radio" id="price-net" name="price-type" value="net">
-      <label for="price-net">NET</label>
-      <input type="radio" id="price-cong" name="price-type" value="congestion">
-      <label for="price-cong">Congestion</label>
-    </div>
-  <div id="top-filter-display">
-    <!-- Dyn -->
+  
+  <!-- 1. Price Selector -->
+  <div class="price-selector">
+    <span class="price-label">Price Type &rarr;</span>
+    <input type="radio" id="price-da" name="price-type" value="da" checked>
+    <label for="price-da">Day-Ahead</label>
+    <input type="radio" id="price-rt" name="price-type" value="rt">
+    <label for="price-rt">Real-Time</label>
+    <input type="radio" id="price-net" name="price-type" value="net">
+    <label for="price-net">NET</label>
+    <input type="radio" id="price-cong" name="price-type" value="congestion">
+    <label for="price-cong">Congestion</label>
   </div>
+
+  <!-- 2. Filter Summary Container -->
+  <div class="filter-container">
+    <span class="filter-label">Filters &rarr;</span>
+    <div id="top-filter-display">
+      <!-- Dynamic Content Loads Here -->
+    </div>
+  </div>
+
 </div>
 
 <div id="main-container">
+  <!-- ... (The rest of your map container code remains the same) ... -->
   <div id="map-container">
     <div id="map"></div>
     <div id="legend"></div>
     <div id="controls-container">
       <button id="filter-btn">Filter</button>
       <button id="avg-btn">Range Avg</button>
-      <!-- Playback Speed Slider -->
       <div id="speed-box">
           <label>Speed</label>
           <input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000" title="Playback Speed (ms)">
@@ -40,24 +48,17 @@
     </div>
   </div>
   
-  <!-- Sidebar Wrapper -->
   <div id="sidebar">
-    <!-- Column 1: Zones -->
     <div id="zone-section">
       <h4>PJM Zones</h4>
       <div id="zone-list"></div>
     </div>
-    <!-- Column 2: Constraints -->
     <div id="constraint-section">
       <div class="constraint-header-wrapper">
           <h4>Active Constraints</h4>
           <div class="c-toggle-container">
-              <label>
-                  <input type="radio" name="c-mode" value="global" checked disabled> Period Avg
-              </label>
-              <label>
-                  <input type="radio" name="c-mode" value="current" disabled> Current Hour
-              </label>
+              <label><input type="radio" name="c-mode" value="global" checked disabled> Period Avg</label>
+              <label><input type="radio" name="c-mode" value="current" disabled> Current Hour</label>
           </div>
       </div>
       <div id="constraint-list">
@@ -67,7 +68,7 @@
   </div>
 </div>
 
-<!-- CSS Styling -->
+<!-- CSS -->
 <style>
   :root {
     --max-width: 100% !important; 
@@ -107,23 +108,57 @@
     box-sizing: border-box;
   }
 
-  #top-filter-display {
-    background-color: #e7f3ff;
-    border: 1px solid #99caff;
+  .filter-container {
+    display: flex;
+    border: 1px solid #aaa;
     border-radius: 5px;
-    padding: 8px 15px;
-    font-size: 16px;
-    flex: 1; 
+    overflow: hidden;
+    flex: 1;          
+    min-width: 0;     
+    background-color: #e7f3ff; 
   }
+
+  .filter-label {
+    padding: 8px 16px; 
+    background-color: #e0e0e0; 
+    color: #333;
+    font-weight: bold;
+    font-size: 14px;
+    border-right: 1px solid #aaa; 
+    display: flex;
+    align-items: center;
+    white-space: nowrap; 
+    cursor: default;
+  }
+
+  #top-filter-display {
+    border: none;     
+    border-radius: 0; 
+    background-color: transparent;
+    
+    padding: 6px 15px;
+    font-size: 14px;
+    flex: 1; 
+    min-width: 0;
+    display: flex;   
+    align-items: center;
+  }
+
   #top-filter-display ul {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
-    gap: 15px;
+    flex-wrap: wrap;
+    gap: 5px 20px;
   }
+
   #top-filter-display li {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    line-height: 1.4;
   }
 
   .price-label {
@@ -138,9 +173,9 @@
     cursor: default; 
   }
   .price-selector-container { display: flex; justify-content: center; }
-  .price-selector { display: flex; border-radius: 5px; overflow: hidden; border: 1px solid #aaa; }
+  .price-selector { display: flex; border-radius: 5px; overflow: hidden; border: 1px solid #aaa; flex-shrink: 0; }
   .price-selector input[type="radio"] { display: none; }
-  .price-selector label { padding: 8px 16px; cursor: pointer; background: #f0f0f0; user-select: none; transition: background 0.2s; font-size: 14px; }
+  .price-selector label { padding: 8px 16px; cursor: pointer; background: #f0f0f0; user-select: none; transition: background 0.2s; font-size: 14px; display: flex; align-items: center; }
   .price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
   .price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
 
@@ -362,7 +397,6 @@
     flex-shrink: 0;
   }
 </style>
-
  
 ```js
 // JS Code begins
@@ -551,7 +585,6 @@ function renderAverageView() {
     });
 }
 
-
 // Query Operation
 async function fetchLmpData() {
     timeDisplay.innerText = 'Querying Data...';
@@ -570,6 +603,7 @@ async function fetchLmpData() {
         const selectedDayIndices = daysBooleans
             .map((isActive, index) => isActive ? index + 1 : null)
             .filter(val => val !== null);
+            
         const query = {
             start_day: cleanDate(filter.startDate),
             end_day: cleanDate(filter.endDate),
@@ -578,6 +612,7 @@ async function fetchLmpData() {
             end_hour: parseInt(filter.endTime) || 24,
             monitored_facility: filter.selectedConstraint || null
         };
+
         const response = await fetch(`${API_BASE_URL}/api/lmp/range`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
@@ -591,29 +626,36 @@ async function fetchLmpData() {
         constraintsData = rawData.constraints || [];
         timeSeriesData = transformApiData(zoneData);
 
+        // --- CHECK FOR EMPTY DATA ---
         if (!timeSeriesData || timeSeriesData.length === 0) {
-            alert("No LMP data found for this range.");
-            timeDisplay.innerText = 'No Data';
+            console.warn("No LMP data found for the selected range.");
+            timeDisplay.innerText = 'No Data Found';
+            
+            displayCurrentFilter(0); 
+            document.getElementById('zone-list').innerHTML = '<div class="empty-state" style="padding:10px;">No data available for this range.</div>';
+            document.getElementById('constraint-list').innerHTML = '<div class="empty-state">No active constraints</div>';
             return;
         }
+
+        displayCurrentFilter(timeSeriesData.length);
+
         const totalHours = timeSeriesData.length;
-        
-        // Constraints
         globalConstraintCache = calculateGlobalStats(constraintsData, totalHours);
         slider.max = timeSeriesData.length - 1;
         slider.disabled = false;
         playBtn.disabled = false;
         
-        // Render Average Price View Initially
         averageDataCache = calculateZoneAverages(); 
         renderAverageView(); 
         
     } catch (error) {
         console.error("Fetch Error:", error);
-        timeDisplay.innerText = 'Error';
-        alert(`Error: ${error.message}`);
+        timeDisplay.innerText = 'Data Error';
+        console.warn(`Error details: ${error.message}`);
     }
 }
+
+
 
 // Animation
 function updateAnimation(index) {
@@ -665,8 +707,7 @@ function updateAnimation(index) {
             let val = 0;
 
             if (activePriceType === 'congestion') {
-                if (zone === selectedZoneName || !selectedZoneName) return; // Skip Sink
-                // Cost = Sink - Source
+                if (zone === selectedZoneName || !selectedZoneName) return; 
                 val = sinkPriceCurrentHour - (r.rt || 0); 
             } 
             else if (r[activePriceType] !== undefined) {
@@ -722,8 +763,8 @@ function updateAnimation(index) {
     renderConstraintList(activeConstraints, 'Shadow Price');
 }
 
-// UI Stuff
-function displayCurrentFilter() {
+// Current Filter Info
+function displayCurrentFilter(resultCount = null) {
     const container = document.getElementById('top-filter-display');
     if (!container || !filter.startDate) return;
 
@@ -732,23 +773,60 @@ function displayCurrentFilter() {
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     };
 
-    // Calc Days String
+    // 1. Days String
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayFlags = filter.daysOfWeek || Array(7).fill(true);
+    const selectedDaysList = dayFlags.map((isSelected, i) => isSelected ? days[i] : null).filter(d => d);
     
-    const selectedDaysList = dayFlags
-        .map((isSelected, i) => isSelected ? days[i] : null)
-        .filter(day => day);
-
     let dayString = selectedDaysList.join(', ');
     if (selectedDaysList.length === 7) dayString = "All Days";
     if (selectedDaysList.length === 0) dayString = "None";
 
+    // 2. Hours Logic
+    let hoursHtml = '';
+    
+    if (resultCount === 0) {
+        // CASE A: Query returned no data
+        hoursHtml = `<li style="color: #d9534f; font-weight: bold;">No Matching Hours</li>`;
+    } 
+    else if (typeof resultCount === 'number') {
+        // CASE B: Query successful, show actual count
+        hoursHtml = `<li><strong>Total Hours:</strong> ${resultCount}</li>`;
+    } 
+    else {
+        // CASE C: Initial Load / Pre-query (Calculate Estimate)
+        let estimated = 0;
+        const start = new Date(filter.startDate);
+        const end = new Date(filter.endDate);
+        
+        let dailyHours = 24;
+        if (filter.selectedHours && Array.isArray(filter.selectedHours)) {
+            dailyHours = filter.selectedHours.length;
+        } else {
+            dailyHours = (parseInt(filter.endTime) || 24) - (parseInt(filter.startTime) || 0);
+        }
+
+        let current = new Date(start);
+        while (current <= end) {
+            if (dayFlags[current.getDay()]) estimated += dailyHours;
+            current.setDate(current.getDate() + 1);
+        }
+        hoursHtml = `<li><strong>Est. Hours:</strong> ${estimated}</li>`;
+    }
+
+    // 3. Constraint Logic
+    let constraintHtml = '';
+    if (filter.selectedConstraint) {
+        constraintHtml = `<li><strong>Constraint:</strong> ${filter.selectedConstraint}</li>`;
+    }
+
+    // 4. Render
     container.innerHTML = `
         <ul>
             <li><strong>Dates:</strong> ${formatDate(filter.startDate)} to ${formatDate(filter.endDate)}</li>
             <li><strong>Days:</strong> ${dayString}</li>
-            <li><strong>Time:</strong> ${filter.startTime}:00 - ${filter.endTime}:00</li>
+            ${hoursHtml}
+            ${constraintHtml}
         </ul>`;
 }
 
@@ -770,7 +848,6 @@ const map = new maplibregl.Map({ container: "map", zoom: 5.2, center: [-82, 38.6
 , attributionControl: false });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 map.addControl(new maplibregl.AttributionControl(), 'bottom-right');
-
 map.on('load', async () => {
     try {
         const res = await fetch(`${API_BASE_URL}/api/zones`);

@@ -655,8 +655,6 @@ async function fetchLmpData() {
     }
 }
 
-
-
 // Animation
 function updateAnimation(index) {
     isAverageMode = false; 
@@ -773,7 +771,7 @@ function displayCurrentFilter(resultCount = null) {
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     };
 
-    // 1. Days String
+    // 1. Days String Logic
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayFlags = filter.daysOfWeek || Array(7).fill(true);
     const selectedDaysList = dayFlags.map((isSelected, i) => isSelected ? days[i] : null).filter(d => d);
@@ -782,19 +780,27 @@ function displayCurrentFilter(resultCount = null) {
     if (selectedDaysList.length === 7) dayString = "All Days";
     if (selectedDaysList.length === 0) dayString = "None";
 
-    // 2. Hours Logic
-    let hoursHtml = '';
-    
+    // 2. Constraint Logic
+    let constraintHtml = '';
+    if (filter.selectedConstraint) {
+        constraintHtml = `<li><strong>Constraint:</strong> ${filter.selectedConstraint}</li>`;
+    }
+
+    // 3. Hours Calculation Logic
+    let hoursValue = 0;
+    let hoursColor = "#333"; // Default black
+    let labelText = "Total Hours";
+
     if (resultCount === 0) {
-        // CASE A: Query returned no data
-        hoursHtml = `<li style="color: #d9534f; font-weight: bold;">No Matching Hours</li>`;
+        hoursValue = "0";
+        hoursColor = "#dc3545"; // Red for no results
     } 
     else if (typeof resultCount === 'number') {
-        // CASE B: Query successful, show actual count
-        hoursHtml = `<li><strong>Total Hours:</strong> ${resultCount}</li>`;
+        hoursValue = resultCount;
+        hoursColor = "#007bff"; // Blue for confirmed count
     } 
     else {
-        // CASE C: Initial Load / Pre-query (Calculate Estimate)
+        // Estimate based on calendar selection
         let estimated = 0;
         const start = new Date(filter.startDate);
         const end = new Date(filter.endDate);
@@ -811,24 +817,47 @@ function displayCurrentFilter(resultCount = null) {
             if (dayFlags[current.getDay()]) estimated += dailyHours;
             current.setDate(current.getDate() + 1);
         }
-        hoursHtml = `<li><strong>Est. Hours:</strong> ${estimated}</li>`;
+        hoursValue = estimated;
+        labelText = "Est. Hours"; 
     }
 
-    // 3. Constraint Logic
-    let constraintHtml = '';
-    if (filter.selectedConstraint) {
-        constraintHtml = `<li><strong>Constraint:</strong> ${filter.selectedConstraint}</li>`;
-    }
+    // 4. Render with Split Layout
+    container.style.display = "flex";
+    container.style.justifyContent = "space-between";
+    container.style.alignItems = "center";
 
-    // 4. Render
     container.innerHTML = `
-        <ul>
-            <li><strong>Dates:</strong> ${formatDate(filter.startDate)} to ${formatDate(filter.endDate)}</li>
-            <li><strong>Days:</strong> ${dayString}</li>
-            ${hoursHtml}
-            ${constraintHtml}
-        </ul>`;
+        <!-- Left Side: Filter Details -->
+        <div style="flex: 1; min-width: 0; padding-right: 10px;">
+            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 20px;">
+                <li><strong>Dates:</strong> ${formatDate(filter.startDate)} - ${formatDate(filter.endDate)}</li>
+                <li><strong>Days:</strong> ${dayString}</li>
+                <li><strong>Time:</strong> ${filter.startTime}:00 - ${filter.endTime}:00</li>
+                ${constraintHtml}
+            </ul>
+        </div>
+
+        <!-- Right Side: Total Hours Badge -->
+        <div style="
+            flex-shrink: 0; 
+            border-left: 1px solid #ccc; 
+            padding-left: 15px; 
+            margin-left: 5px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            min-width: 70px;
+        ">
+            <span style="font-size: 10px; color: #666; text-transform: uppercase; font-weight: bold; line-height: 1; margin-bottom: 2px;">
+                ${labelText}
+            </span>
+            <span style="font-size: 22px; font-weight: bold; color: ${hoursColor}; line-height: 1;">
+                ${hoursValue}
+            </span>
+        </div>`;
 }
+
 
 function buildLegend(currentScale) {
     const container = document.getElementById('legend');
@@ -844,7 +873,7 @@ function buildLegend(currentScale) {
 }
 
 // Map Init
-const map = new maplibregl.Map({ container: "map", zoom: 5.2, center: [-82, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
+const map = new maplibregl.Map({ container: "map", zoom: 5.3, center: [-82, 38.6], pitch: 10, hash: true, style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT'
 , attributionControl: false });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 map.addControl(new maplibregl.AttributionControl(), 'bottom-right');
@@ -933,7 +962,7 @@ zoneListElement.addEventListener('click', (e) => {
     const zData = zones.find(z => z.name === zName);
     
     if (zName === 'PJM') { 
-        map.flyTo({ center: [-82, 38.6], zoom: 5.1, pitch: 10 }); 
+        map.flyTo({ center: [-82, 38.6], zoom: 5.3, pitch: 10 }); 
     } 
     else if (zData) { 
         map.flyTo({ center: zData.center, zoom: 5.9, pitch: 20 }); 

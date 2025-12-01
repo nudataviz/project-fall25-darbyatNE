@@ -210,7 +210,7 @@ export function dateTimeRangePicker(options = {}) {
 
   // 4. Current Filter Display (Attached to controlFrame)
   const currentFilterDisplay = controlFrame.append("div")
-    .style("margin-bottom", "20px")
+    .style("margin-bottom", "10px")
     .style("padding", "10px")
     .style("background-color", "#e7f3ff") 
     .style("border-radius", "8px")

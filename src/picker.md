@@ -1,4 +1,5 @@
-# PJM Electricity - Build A Filter
+# LMP Query Tool
+#### LMP - Locational Marginal Price
 ```js
 import { filter, saveFilter } from "./lib/filter.js";
 import { dateTimeRangePicker } from "./components/dateTimeRangePicker.js";

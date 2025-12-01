@@ -1,59 +1,197 @@
-# Framework
+# Semester Project
+**Course:** CS7250  
+**Term:** Fall 2025 – Professor Bogden  
+**Team:** Ben Darby & Ben Henshaw  
 
-This is an [Observable Framework](https://observablehq.com/framework/) app. To install the required dependencies, run:
+---
 
+# It's Electric
+### *Visual Analytics for PJM Market Forecasting*
+
+> **Topic:** Forecasting Electricity Prices by Zone using "Like-Day" Historical Price Retrieval and Analysis
+
+---
+
+## Project Overview
+
+### Purpose
+This project's primary objective is to develop a visual analytical interface for energy market participants operating within the PJM Interconnection. The tool's core function is to identify **historical analogs** ("like days") by analyzing a set of predictive features related to market prices. 
+
+Key features analyzed include:
+*   Calendar dates & seasonality
+*   Days of the week
+*   Hours of the day
+*   Real-time transmission constraints (which cause price congestion across zones)
+
+A critical constraint of this analysis is that all features must be known *prior* to market clearing. The resulting insights enable users to:
+1.  Better forecast zonal Locational Marginal Prices (LMPs).
+2.  Anticipate price separation (congestion) between zones.
+3.  Improve risk management and optimize bidding strategies.
+
+### The Problem We Address: Congestion & Basis Risk
+In ISO markets like PJM, simply securing generation to match your load does not eliminate financial risk. Market participants remain exposed to **price congestion**—the volatile price difference between where energy is generated (Supply) and where it is consumed (Demand).
+
+This "basis risk" cannot be preset. While third-party financial products exist to hedge this risk, purchasing them blindly leaves significant value on the table. 
+
+To determine the true value of congestion risk, participants must understand the specific **situational context**—analyzing historical "like days" to see how the grid behaves under similar supply and demand pressures.
+
+### Target Audience
+This tool is designed for **Procurement Specialists, Energy Traders, Risk Managers, Market Analysts, and Curious Students** who wish to visualize complex inter-zonal relationships and historical patterns.
+
+We specifically target professionals **willing to "do the homework"**—users looking to move beyond passive reporting to actively leverage deep historical data and interactive visualizations for high-stakes decision-making in the Real-Time and Day-Ahead markets.
+
+---
+
+## Interface Preview
+
+<div align="center">
+  <img src="src/img/PJM_Map.png" alt="PJM LMP Map" width="600">
+  <p><em>The interface allows users to visualize congestion deltas, filter historical data, retrieve summary information, and replay market days hour-by-hour.</em></p>
+
+  <br>
+
+  <img src="src/img/Query_Tool.png" alt="PJM Data Query" width="600">
+  <p><em>The query page allows users to design filters matching specific date, day, time, and congestion conditions. These parameters are dynamically passed to the database to retrieve instant results.</em></p>
+</div>
+
+---
+
+## System Architecture
+
+The application is built on a modular architecture to ensure scalability and separation of functionality:
+
+| Component | Tech Stack | Role |
+| :--- | :--- | :--- |
+| **Data Sources** | PJM Data Miner 2 & ArcGIS Online | Harnesses the PJM "Data Vault" for market data and retrieves GeoShapes for PJM zone shapes. |
+| **Database** | AWS RDS (MySQL) | Currently Stores 9GB+ of historical PJM market data. |
+| **Frontend** | Observable Framework (JS/D3) | Interactive visualizations and state management. |
+| **Mapping** | MapLibre GL JS | High-performance vector tile mapping for zone topology and ISO border identification. |
+| **Backend** | Python (FastAPI) | Handles API requests and executes complex SQL queries. |
+| **Version Control** | GitHub | Source code management and team collaboration. |
+
+---
+
+## Reproducibility & Setup
+
+Follow these instructions to clone the repository, configure the environment, and run the application on your local machine.
+
+### 1. Prerequisites
+Before you begin, ensure you have the following installed on your system:
+- [Git](https://git-scm.com/)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html) (Miniconda or Anaconda)
+- [Node.js & npm](https://nodejs.org/) (Required for Observable Framework)
+
+### 2. Installation
+
+**Clone the Repository**  
+All subsequent commands should be run from the project root directory.
+```bash
+git clone https://github.com/nudataviz/project-fall25-darbyatNE
+cd project-fall25-darbyatNE
 ```
-npm install
-```
 
-Then, to start the local preview server, run:
+**Verify Directory Structure**  
+Ensure the `src/` directory exists and contains `index.html`, `picker.md`, and `backend.py`, and that `src/lib/` contains the necessary component files, `config.js`, `filter.js`, `utils.js`.
 
-```
-npm run dev
-```
+### 3. Configuration (.env)
 
-Then visit <http://localhost:3000> to preview your app.
+Create a file named `.env` at the project root (`project-fall25-darbyatNE/`). This file is required to connect to the PJM Data API, the AWS RDS instance, and map services.
 
-For more, see <https://observablehq.com/framework/getting-started>.
-
-## Project structure
-
-A typical Framework project looks like this:
-
+**Add the following keys to your `.env` file:**
 ```ini
-.
-├─ src
-│  ├─ components
-│  │  └─ timeline.js           # an importable module
-│  ├─ data
-│  │  ├─ launches.csv.js       # a data loader
-│  │  └─ events.json           # a static data file
-│  ├─ example-dashboard.md     # a page
-│  ├─ example-report.md        # another page
-│  └─ index.md                 # the home page
-├─ .gitignore
-├─ observablehq.config.js      # the app config file
-├─ package.json
-└─ README.md
+PJM_API_KEY=your_pjm_api_key_here
+USER=database_username
+DB_PASSWORD=database_password
+DB_NAME=database_name
+DB_HOST=aws_rds_endpoint
+DB_PORT=3306
+BACKEND_URL=http://127.0.0.1:8000
+MAP_KEY=your_maptiler_map_key
 ```
 
-**`src`** - This is the “source root” — where your source files live. Pages go here. Each page is a Markdown file. Observable Framework uses [file-based routing](https://observablehq.com/framework/project-structure#routing), which means that the name of the file controls where the page is served. You can create as many pages as you like. Use folders to organize your pages.
+### 4. Environment Setup
 
-**`src/index.md`** - This is the home page for your app. You can have as many additional pages as you’d like, but you should always have a home page, too.
+Create the Conda environment using the provided YAML file. This installs all necessary Python dependencies.
 
-**`src/data`** - You can put [data loaders](https://observablehq.com/framework/data-loaders) or static data files anywhere in your source root, but we recommend putting them here.
+```bash
+# Create the environment from file
+conda env create -f lmp_env.yml
 
-**`src/components`** - You can put shared [JavaScript modules](https://observablehq.com/framework/imports) anywhere in your source root, but we recommend putting them here. This helps you pull code out of Markdown files and into JavaScript modules, making it easier to reuse code across pages, write tests and run linters, and even share code with vanilla web applications.
+# Activate the environment
+conda activate lmp-env
+```
 
-**`observablehq.config.js`** - This is the [app configuration](https://observablehq.com/framework/config) file, such as the pages and sections in the sidebar navigation, and the app’s title.
+### 5. Database Setup
 
-## Command reference
+Any MySQL database can be used with the API scripts included in this repo. An AWS RDS MySQL instance is used by the authors. The schema for the database is detailed below:
 
-| Command           | Description                                              |
-| ----------------- | -------------------------------------------------------- |
-| `npm install`            | Install or reinstall dependencies                        |
-| `npm run dev`        | Start local preview server                               |
-| `npm run build`      | Build your static site, generating `./dist`              |
-| `npm run deploy`     | Deploy your app to Observable                            |
-| `npm run clean`      | Clear the local data loader cache                        |
-| `npm run observable` | Run commands like `observable help`                      |
+<div align="center">
+  <img src="src/img/schema.png" alt="Schema of DB" width="600">
+</div>
+
+---
+
+## 6. Populate the Data
+
+This project harnesses the **PJM Data Vault** using the **Data Miner 2** toolset. There are two methods to acquire this data: manual CSV downloads or programmatic ingestion via the PJM API.
+
+#### 1. Data Access
+*   **Manual Download (No Account Required):**  
+    All PJM data is publicly available and can be downloaded as CSV files via [PJM Data Miner 2](https://dataminer2.pjm.com/list).
+*   **Programmatic API Access (Recommended):**  
+    To automate data ingestion, you must register for a PJM account and generate a subscription key.  
+     [**PJM New User Registration Guide**](https://www.pjm.com/-/media/DotCom/etools/account-manager/new-user-registration-workflows-quick-guide-1.pdf)
+
+#### 2. Running Ingestion Scripts
+Once you have an active PJM API Key and have configured your `.env` file, you can utilize the pre-built scripts located in the `src/data` directory.
+
+**Example: Fetching Real-Time Prices**  
+The script `pjm_query_rt_lmp.py` fetches Real-Time Locational Marginal Prices (LMPs). Before running, open the file and configure the target parameters (currently lines 23–25):
+
+```python
+# Configuration Variables inside pjm_query_rt_lmp.py
+START_DATE = "2023-01-01"
+END_DATE   = "2023-12-31"
+PNODE_IDS  = [12345, 67890] # List of specific PJM Nodes
+```
+
+Run the script via terminal:
+```bash
+python src/data/pjm_query_rt_lmp.py
+```
+
+#### 3. AWS & Network Security
+If you are connecting to an AWS RDS instance or hosting the backend on EC2, you must configure the **Security Group** rules to allow traffic.
+
+*   **Inbound Rules:**
+    *   **Database (MySQL/Aurora):** Allow traffic on Port `3306`.
+    *   **API Access:** If hosting the backend remotely, allow traffic on Port `8000`.
+*   **Access Control:**
+    *   Ensure the Security Group allows traffic **only from the specific IP addresses** of the users who are pinging, filling, or querying the database.
+
+---
+
+## Running the Application
+
+1.  **Start the Observable Framework Application**  
+    Run the development server using npm:
+    ```bash
+    npm run dev
+    ```
+
+2.  **Access the Dashboard**  
+    Open your web browser and navigate to:
+    ```
+    http://127.0.0.1:8000
+    ```
+
+---
+
+## Feedback & Contact
+
+Feedback and suggestions are welcome! Please send your thoughts to:
+*   **Ben Darby:** darby.b@northeastern.edu
+*   **Ben Henshaw:** henshaw.b@northeastern.edu
+
+### Additional Documentation
+For a detailed academic overview of our methodology and project scope, please refer to the **[`proposal.md`](proposal.md)** document in this repository.

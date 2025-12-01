@@ -1,3 +1,6 @@
-/hello-lmp
 .env
-/misc
+misc/
+*.pyc
+__pycache__/
+static/
+node_modules/

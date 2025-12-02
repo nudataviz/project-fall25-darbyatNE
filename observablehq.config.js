@@ -8,7 +8,7 @@ export default {
         <meta property="og:image" content="/img/observable.png">
         `,
         
-  // 1. Define Pages to control Sidebar Names
+  // Sidebar Page Titles
   pages: [
     {
       name: "Build A Filter", 
@@ -16,7 +16,7 @@ export default {
     }
   ],
 
-  // 2. Proxy API requests to backend
+  // API requests to backend proxy
   proxy: {
     "/api": {
       target: process.env.BACKEND_URL || "http://127.0.0.1:8000",

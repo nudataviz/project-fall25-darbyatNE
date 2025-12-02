@@ -1,4 +1,4 @@
-// src/lib/math.js
+// src/controller/math.js
 
 import * as d3 from "npm:d3";
 

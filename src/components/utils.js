@@ -1,4 +1,4 @@
-// src/utils.js
+// src/controller/utils.js
 
 import { COLOR_SCALE } from './config.js';
 

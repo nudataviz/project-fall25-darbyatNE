@@ -1,14 +1,29 @@
-/* src/style.css */
-body { margin: 0; padding: 0; }
+/* src/controller/style.css */
 
-:root { --max-width: 100% !important; }
-
-#observablehq-main, main {
-  max-width: 100% !important;
-  padding: 0 0 0 50px !important;
-  margin: 0 !important;
-  width: 100% !important;
+:root {
+  --max-width: none !important;
 }
+
+/* 2. Reset the main container */
+#observablehq-main {
+  display: flex;
+  flex-direction: column;
+  
+  /* CRITICAL: Do NOT set width to 100%. 
+     'auto' allows it to fill the space next to the sidebar naturally. */
+  width: auto !important; 
+  
+  /* Remove the default center-column constraints */
+  max-width: none !important;
+  margin: 0 !important;
+  
+  /* Add standard padding so content doesn't touch the sidebar immediately */
+  padding: 1rem !important; 
+  
+  /* Ensure padding is calculated inside the box size */
+  box-sizing: border-box;
+}
+
 
 #page-header {
   width: 100%; margin: 0; text-align: center; padding: 5px 20px 1px 20px;

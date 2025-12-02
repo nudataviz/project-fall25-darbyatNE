@@ -1,4 +1,29 @@
-// src/lib/ui.js
+// src/components/lib/ui.js
+
+export const CONGESTION_POPUP_HTML = `
+    <div style="font-family: sans-serif; text-align: center; color: #333;">
+        <strong style="display:block; border-bottom:1px solid #ccc; margin-bottom:8px; padding-bottom:4px; font-size:13px;">
+            Load Congestion View
+        </strong>
+        <div style="font-size: 11px; line-height: 1.4;">
+            The <span style="background-color: #333; color: #FFFF00; padding: 1px 4px; font-weight: bold; border-radius: 3px;">Yellow Bordered Zone</span> is the selected Load Zone.<br>
+            Prices displayed are the cost to "deliver" from each zone to the selected Load Zone.
+        </div>
+    </div>
+`;
+
+export const createZonePopupHTML = (zoneName, priceType, value) => {
+    const formattedPrice = value !== null ? `$${value.toFixed(2)}` : 'N/A';
+    return `
+        <div class="zone-popup-content">
+            <strong class="zone-popup-header">${zoneName}</strong>
+            <div>
+                <span class="zone-popup-label">${priceType}:</span> 
+                <span class="zone-popup-value">${formattedPrice}</span>
+            </div>
+        </div>
+    `;
+};
 
 export function renderConstraintList(listItems, labelType) {
     const container = document.getElementById('constraint-list');
@@ -35,7 +60,7 @@ export function displayCurrentFilter(filter, resultCount = null) {
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     };
 
-    // 1. Days String Logic
+    // Days String Logic
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayFlags = filter.daysOfWeek || Array(7).fill(true);
     const selectedDaysList = dayFlags.map((isSelected, i) => isSelected ? days[i] : null).filter(d => d);
@@ -44,13 +69,13 @@ export function displayCurrentFilter(filter, resultCount = null) {
     if (selectedDaysList.length === 7) dayString = "All Days";
     if (selectedDaysList.length === 0) dayString = "None";
 
-    // 2. Constraint Logic
+    // Constraint Logic
     let constraintHtml = '';
     if (filter.selectedConstraint) {
         constraintHtml = `<li><strong>Constraint:</strong> ${filter.selectedConstraint}</li>`;
     }
 
-    // 3. Hours Calculation Logic
+    // Hours Calculation Logic
     let hoursValue = 0;
     let hoursColor = "#333"; 
     let labelText = "Total Hours";
@@ -85,7 +110,7 @@ export function displayCurrentFilter(filter, resultCount = null) {
         labelText = "Est. Hours"; 
     }
 
-    // 4. Render
+    // Render
     container.style.display = "flex";
     container.style.justifyContent = "space-between";
     container.style.alignItems = "center";

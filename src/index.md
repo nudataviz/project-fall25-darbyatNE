@@ -367,8 +367,6 @@ map.on('load', async () => {
         } else {
             val = zoneData ? zoneData[activePriceType] : null;
         }
-        
-        // FIX: Added 'popup' variable and closed the function correctly
         popup.setLngLat(e.lngLat)
              .setHTML(createZonePopupHTML(zone, activePriceType, val))
              .addTo(map);
@@ -397,7 +395,7 @@ zoneListElement.addEventListener('click', (e) => {
     if (activePriceType === 'congestion') isAverageMode ? renderAverageView() : updateAnimation(currentIndex);
 });
 
-// --- Helper: Playback Control ---
+// Playback Control
 function stopAnimation() {
     if (timer) {
         clearInterval(timer);
@@ -423,7 +421,7 @@ map.on('click', 'zoneFill', (e) => {
     if (!e.features.length) return;
     const clickedZone = e.features[0].properties.Zone_Name;
 
-    // Interaction 1: Set Congestion Reference (Shift + Click)
+    // Interaction 1: Set Congestion Reference
     if (e.originalEvent.shiftKey && activePriceType === 'congestion') {
         selectedZoneName = clickedZone;
         updateZoneBorders();
@@ -439,7 +437,7 @@ map.on('click', 'zoneFill', (e) => {
         return;
     }
 
-    // Interaction 2: Select Zone in Sidebar (Normal Click)
+    // Interaction 2: Select Zone in Sidebar
     const sidebarItem = document.querySelector(`.zone-item[data-zone-name="${clickedZone}"]`);
     if (sidebarItem) sidebarItem.click();
 });
@@ -474,7 +472,7 @@ slider.oninput = (e) => {
 speedSlider.oninput = (e) => {
     playbackSpeed = 3100 - parseInt(e.target.value);
     
-    // If currently playing, restart the timer with the new speed
+    // restart the timer with the new speed
     if (timer) { 
         clearInterval(timer); 
         startAnimation();

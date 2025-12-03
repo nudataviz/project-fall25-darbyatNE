@@ -1,11 +1,14 @@
-// Observable Framework configuration
 // See https://observablehq.com/framework/config
+// Observable Framework configuration
 
 export default {
   title: "PJM LMP Visualization",
-  head: '<link rel="icon" href="/lib/favicon_lmp_32.png" type="image/png">',
-  
-  // 1. Define Pages to control Sidebar Names
+  head: `
+        <link rel="icon" href="/img/lmp_icon.png" type="image/png">
+        <meta property="og:image" content="/img/observable.png">
+        `,
+        
+  // Sidebar Page Titles
   pages: [
     {
       name: "Build A Filter", 
@@ -13,7 +16,7 @@ export default {
     }
   ],
 
-  // 2. Proxy API requests to backend
+  // API requests to backend proxy
   proxy: {
     "/api": {
       target: process.env.BACKEND_URL || "http://127.0.0.1:8000",

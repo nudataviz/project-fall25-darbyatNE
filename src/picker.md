@@ -2,7 +2,7 @@
 #### LMP - Locational Marginal Price
 ```js
 import { filter, saveFilter } from "./components/filter.js";
-import { dateTimeRangePicker } from "./components/dateTimeRangePicker.js";
+import { dateTimeRangePicker } from "./components/picker.js";
 import { API_BASE_URL } from "./components/config.js";
 ```
 ```js

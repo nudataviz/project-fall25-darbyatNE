@@ -4,7 +4,7 @@
 export default {
   title: "PJM LMP Visualization",
   head: `
-        <link rel="icon" href="/img/favicon_lmp_32.png" type="image/png">
+        <link rel="icon" href="/img/lmp_icon.png" type="image/png">
         <meta property="og:image" content="/img/observable.png">
         `,
         

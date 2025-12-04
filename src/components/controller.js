@@ -65,6 +65,11 @@ export class MapController {
             this.constraintsData = rawData.constraints || [];
             this.timeSeriesData = transformApiData(rawData.zones || rawData);
 
+            // Update plot manager with new data
+            if (window.zonePlotManager && this.timeSeriesData) {
+                window.zonePlotManager.updateData(this.timeSeriesData);
+            }
+
             if (!this.timeSeriesData || this.timeSeriesData.length === 0) {
                 this.ui.timeDisplay.innerText = 'No Data Found';
                 displayCurrentFilter(filter, 0);
@@ -232,7 +237,17 @@ export class MapController {
         if (sidebarItem) sidebarItem.click();
     }
 
-    setPriceType(type) { this.activePriceType = type; this.updateZoneBorders(); this.renderCurrentView(); }
+    setPriceType(type) { 
+        this.activePriceType = type; 
+        this.updateZoneBorders(); 
+        this.renderCurrentView(); 
+        
+        // Update plot manager with new price type
+        if (window.zonePlotManager) {
+            window.zonePlotManager.updatePriceType(type);
+        }
+    }
+    
     setPlaybackSpeed(val) { this.playbackSpeed = 3100 - val; if (this.timer) { clearInterval(this.timer); this.startAnimation(); } }
     startAnimation() { this.ui.playBtn.innerText = 'Pause'; this.timer = setInterval(() => { const nextIndex = this.currentIndex + 1; if (nextIndex >= this.timeSeriesData.length) { this.stopAnimation(); } else { this.renderTimeStep(nextIndex); } }, this.playbackSpeed); }
     stopAnimation() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.ui.playBtn.innerText = 'Play'; }

@@ -133,10 +133,28 @@ h4 {
   padding: 2.5px 2px; border-bottom: 1px solid #ccc; font-size: 12px;
   display: flex; justify-content: space-between; align-items: center;
 }
-.zone-item { cursor: pointer; }
+.zone-item { 
+  cursor: pointer; 
+  gap: 4px;
+}
 .zone-item:hover { background-color: #e2e6ea; }
 .zone-item.selected { background-color: #afb7c0ff; color: white; font-weight: bold; }
 .zone-item .zone-price { font-weight: bold; min-width: 40px; text-align: right; }
+
+/* Zone checkbox styling */
+.zone-checkbox {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #007bff;
+}
+
+.zone-item .zone-name {
+  flex: 1;
+  min-width: 0;
+}
 
 .constraint-row .c-name { flex: 1; margin-right: 5px; word-wrap: break-word; line-height: 1.1; font-size: 10px; }
 .constraint-row .c-price { font-weight: bold; color: #2f37d3ff; white-space: nowrap; font-size: 14px; }
@@ -211,4 +229,123 @@ h4 {
     font-weight: bold; 
     color: #8B4513;
     padding: 2px;
+}
+
+/* ========== PLOT PANEL STYLES ========== */
+
+.plot-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 3px solid #444;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
+  z-index: 1000;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.plot-panel.hidden {
+  transform: translateY(100%);
+}
+
+.plot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.plot-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.plot-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#selected-zones-count {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+#clear-zones-btn,
+#close-plot-btn {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  font-family: sans-serif;
+}
+
+#clear-zones-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+#close-plot-btn {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 4px 10px;
+  color: #666;
+  line-height: 1;
+}
+
+#close-plot-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+#plot-content {
+  padding: 24px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+
+#plot-content .loading,
+#plot-content .error,
+#plot-content .empty-state {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  font-family: sans-serif;
+}
+
+#plot-content .error {
+  color: #d32f2f;
+}
+
+#plot-content .empty-state {
+  font-style: italic;
+}
+
+/* Plot content when it has a chart */
+#plot-content:has(svg) {
+  display: block;
+  padding: 20px;
+}
+
+/* Zone selection highlight on map */
+#zone-selected {
+  pointer-events: none;
 }

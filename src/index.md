@@ -1,7 +1,12 @@
 <link rel="stylesheet" href="./components/style.css">
 <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
 
-<div class="header-container"><h1 id="page-header-text">Interactive PJM LMP Map</h1></div>
+<div class="header-container">
+  <h1 id="page-header-text">Interactive PJM LMP Map</h1>
+  <p style="font-size: 12px; color: #666; margin: 5px 0 0 0; font-style: italic;">
+    💡 Tip: Use checkboxes in the zone list to compare prices
+  </p>
+</div>
 
 <div class="top-controls-wrapper">
   <div class="price-selector">
@@ -20,7 +25,7 @@
   <div id="map-container">
     <div id="map"></div><div id="legend"></div>
     <div id="controls-container">
-      <button id="filter-btn">Δ Filter</button>
+      <button id="filter-btn">⚙ Filter</button>
       <button id="avg-btn">Avg Price View</button>
       <div id="speed-box"><label>Speed</label><input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000"></div>
       <button id="play-btn">Play</button>
@@ -46,3 +51,4 @@
 ```js
 import { initApp } from "./components/map.js";
 initApp();
+```

@@ -6,6 +6,7 @@ import { filter } from "./filter.js";
 import { API_BASE_URL, ZONE_LABEL_OVERRIDES, COLOR_SCALE, NET_COLOR_SCALE } from "./config.js";
 import { buildLegend, displayCurrentFilter } from "./ui.js";
 import { MapController } from "./controller.js";
+import { zonePlotManager } from "./zonePlot.js";
 
 export function initApp() {
     // 1. Initialize Map
@@ -18,6 +19,10 @@ export function initApp() {
         style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT',
         attributionControl: false
     });
+    
+    // Store map instance globally for plot manager access
+    window.mapInstance = map;
+    
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     map.addControl(new maplibregl.AttributionControl(), 'bottom-right');
 
@@ -27,6 +32,9 @@ export function initApp() {
         slider: document.getElementById('slider'),
         playBtn: document.getElementById('play-btn'),
     });
+    
+    // Store controller globally for plot manager access
+    window.mapController = controller;
 
     // 3. Map Load Logic
     map.on('load', async () => {
@@ -51,6 +59,10 @@ export function initApp() {
             const zones = [{ name: "PJM", center: [-82, 38.6] }, ...shapes.features.map(f => ({ name: f.properties.Zone_Name, center: d3.geoCentroid(f) })).sort((a, b) => a.name.localeCompare(b.name))];
             document.getElementById('zone-list').innerHTML = zones.map(z => `<div class="zone-item" data-zone-name="${z.name}"><span class="zone-name">${z.name}</span><span class="zone-price"></span></div>`).join('');
 
+            // Initialize Zone Plot Manager after zone list is created
+            zonePlotManager.initialize(map, filter);
+            window.zonePlotManager = zonePlotManager;
+
             // Map Interactions
             map.on('mousemove', 'zoneFill', (e) => controller.handleMapHover(e));
             map.on('mouseleave', 'zoneFill', () => controller.hoverPopup.remove());
@@ -60,6 +72,10 @@ export function initApp() {
             document.getElementById('zone-list').addEventListener('click', (e) => {
                 const item = e.target.closest('.zone-item');
                 if (!item) return;
+                
+                // Don't trigger zone selection if clicking checkbox
+                if (e.target.classList.contains('zone-checkbox')) return;
+                
                 document.querySelectorAll('.zone-item').forEach(i => i.classList.remove('selected'));
                 item.classList.add('selected');
 
@@ -88,9 +104,11 @@ export function initApp() {
 
     // 4. Bind DOM Controls
     document.querySelector('.price-selector').addEventListener('change', (e) => {
-        buildLegend((e.target.value === 'net' || e.target.value === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE);
-        controller.setPriceType(e.target.value);
+        const priceType = e.target.value;
+        buildLegend((priceType === 'net' || priceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE);
+        controller.setPriceType(priceType);
     });
+    
     document.getElementById('play-btn').onclick = () => controller.togglePlay();
     document.getElementById('avg-btn').onclick = () => { controller.stopAnimation(); controller.renderAverageView(); };
     document.getElementById('slider').oninput = (e) => { controller.stopAnimation(); controller.renderTimeStep(parseInt(e.target.value)); };

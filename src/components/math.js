@@ -1,10 +1,9 @@
-// src/controller/math.js
+// src/components/math.js
 
 import * as d3 from "npm:d3";
 
 export function calculateGlobalStats(constraintList, totalHours) {
     if (!constraintList || constraintList.length === 0) return [];
-
     return d3.rollups(
         constraintList,
         (group) => d3.sum(group, d => Number(d.shadow_price) || 0),
@@ -23,11 +22,13 @@ export function calculateZoneAverages(timeSeriesData) {
     
     timeSeriesData.forEach(step => {
         Object.entries(step.readings).forEach(([zone, values]) => {
-            if (!sums[zone]) sums[zone] = { da: 0, rt: 0, net: 0, congestion: 0, count: 0 };
-            sums[zone].da += values.da || 0;
-            sums[zone].rt += values.rt || 0;
-            sums[zone].net += values.net || 0;
-            sums[zone].congestion += values.congestion || 0;
+            if (!sums[zone]) {
+                sums[zone] = { da: 0, rt: 0, net: 0, congestion: 0, count: 0 };
+            }
+            sums[zone].da += Number(values.da) || 0;
+            sums[zone].rt += Number(values.rt) || 0;
+            sums[zone].net += Number(values.net) || 0;
+            sums[zone].congestion += Number(values.congestion) || 0;
             sums[zone].count++;
         });
     });
@@ -44,5 +45,6 @@ export function calculateZoneAverages(timeSeriesData) {
             };
         }
     });
+    
     return averages;
 }

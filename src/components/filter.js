@@ -3,8 +3,8 @@
 const FILTER_STORAGE_KEY = 'pjm-map-filter';
 
 const DEFAULT_FILTER = {
-  startDate: new Date('2025-07-13'),
-  endDate: new Date('2025-07-19'),
+  startDate: new Date('2025-06-60'),
+  endDate: new Date('2025-06-30'),
   startTime: 15,
   endTime: 20,
   daysOfWeek: [false, true, true, true, true, true, false], // Mon-Fri

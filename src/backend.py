@@ -95,7 +95,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
                 da.datetime_beginning_ept,
                 da.total_lmp_da AS lmp_da,
                 rt.total_lmp_rt AS lmp_rt,
-                (da.total_lmp_da - rt.total_lmp_rt) AS lmp_net
+                (rt.total_lmp_rt - da.total_lmp_da) AS lmp_net
             FROM
                 pjm_da_hrl_lmps AS da
             JOIN

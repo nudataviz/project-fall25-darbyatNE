@@ -1,5 +1,3 @@
-// src/components/controller.js
-
 import maplibregl from "npm:maplibre-gl";
 import { API_BASE_URL, COLOR_SCALE, NET_COLOR_SCALE } from "./config.js";
 import { transformApiData, getColorForLmp } from "./utils.js";
@@ -28,15 +26,11 @@ export class MapController {
         if (!dataMap || !dataMap[zoneName]) return null;
         if (this.activePriceType === 'congestion') {
             if (!this.selectedZoneName || !dataMap[this.selectedZoneName]) return null;
-            
             if (zoneName === this.selectedZoneName) return 0;
             const loadZonePrice = Number(dataMap[this.selectedZoneName].rt || 0);
             const remoteZonePrice = Number(dataMap[zoneName].rt || 0);
-            
             return loadZonePrice - remoteZonePrice;
         }
-
-        // Standard Price Views (DA, RT, Net)
         return Number(dataMap[zoneName][this.activePriceType]);
     }
 
@@ -45,7 +39,11 @@ export class MapController {
         this.stopAnimation();
 
         try {
-            const cleanDate = (d) => d ? new Date(d).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const cleanDate = (d) => {
+                if (typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}$/)) return d;
+                return d ? new Date(d).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            };
+
             const daysBooleans = filter.daysOfWeek || Array(7).fill(true);
             
             const query = {
@@ -58,9 +56,7 @@ export class MapController {
             };
 
             const response = await fetch(`${API_BASE_URL}/api/lmp/range`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(query) 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) 
             });
             
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
@@ -90,11 +86,7 @@ export class MapController {
     }
 
     renderCurrentView() {
-        if (this.isAverageMode) {
-            this.renderAverageView();
-        } else {
-            this.renderTimeStep(this.currentIndex);
-        }
+        if (this.isAverageMode) { this.renderAverageView(); } else { this.renderTimeStep(this.currentIndex); }
     }
 
     renderAverageView() {
@@ -106,8 +98,6 @@ export class MapController {
 
         const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
         const colorExpression = ['case'];
-        
-        // Use Helper
         const dataSource = this.averageDataCache;
 
         for (const zone in dataSource) {
@@ -117,23 +107,17 @@ export class MapController {
             }
         }
         colorExpression.push('#cccccc');
-        
         if (this.map.getLayer('zoneFill')) this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
 
-        // Calculate PJM System Average
-        let pjmSum = 0;
-        let pjmCount = 0;
-        
+        let pjmSum = 0, pjmCount = 0;
         Object.keys(dataSource).forEach(zone => {
             const val = this.getZoneValue(zone, dataSource);
             if (val !== null && !isNaN(val)) {
                 if (this.activePriceType === 'congestion' && zone === this.selectedZoneName) return;
-                pjmSum += val;
-                pjmCount++;
+                pjmSum += val; pjmCount++;
             }
         });
         const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
-
         this.updateSidebarPrices((z) => this.getZoneValue(z, dataSource), currentScale, pjmAvg);
     }
 
@@ -144,8 +128,23 @@ export class MapController {
         const data = this.timeSeriesData[index];
         if (!data) return;
 
-        const d = new Date(data.datetime);    
-        this.ui.timeDisplay.innerText = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} | ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false })}`;
+        let displayDateStr = "Invalid Date";
+        
+        if (data.datetime) {
+            const match = data.datetime.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+            
+            if (match) {
+                const [_, y, m, d, hr, min] = match;
+                const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = `${parseInt(hr)}:${min}`; 
+                displayDateStr = `${dateStr} | ${timeStr}`;
+            } else {
+                displayDateStr = data.datetime;
+            }
+        }
+
+        this.ui.timeDisplay.innerText = displayDateStr;
         
         const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
         const dataSource = data.readings;
@@ -157,22 +156,17 @@ export class MapController {
             }
         }
         colorExpression.push('#cccccc');
-        
         if (this.map.getLayer('zoneFill')) this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
 
-        let pjmSum = 0;
-        let pjmCount = 0;
-
+        let pjmSum = 0, pjmCount = 0;
         Object.keys(dataSource).forEach(zone => {
             const val = this.getZoneValue(zone, dataSource);
             if (val !== null && !isNaN(val)) {
                 if (this.activePriceType === 'congestion' && zone === this.selectedZoneName) return;
-                pjmSum += val;
-                pjmCount++;
+                pjmSum += val; pjmCount++;
             }
         });
         const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
-
         this.updateSidebarPrices((z) => this.getZoneValue(z, dataSource), currentScale, pjmAvg);
 
         setConstraintModeUI('current');
@@ -190,14 +184,8 @@ export class MapController {
             const zName = item.dataset.zoneName;
             const priceSpan = item.querySelector('.zone-price');
             if (!priceSpan) return;
-            
             let val;
-            if (zName === 'PJM') {
-                val = pjmAvg;
-            } else {
-                val = getValueFn(zName);
-            }
-
+            if (zName === 'PJM') { val = pjmAvg; } else { val = getValueFn(zName); }
             if (val !== null && val !== undefined && !isNaN(val)) {
                 priceSpan.innerText = `$${val.toFixed(2)}`;
                 priceSpan.style.color = getColorForLmp(val, scale);
@@ -211,101 +199,42 @@ export class MapController {
     updateZoneBorders() {
         if (!this.map.getLayer('zoneLines')) return;
         const targetZone = (this.activePriceType === 'congestion' && this.selectedZoneName) ? this.selectedZoneName : '';
-        
         this.map.setPaintProperty('zoneLines', 'line-width', ['case', ['==', ['get', 'Zone_Name'], targetZone], 6, 1.5]);
         this.map.setPaintProperty('zoneLines', 'line-color', ['case', ['==', ['get', 'Zone_Name'], targetZone], '#FFFF00', '#000000']);
-
         if (this.congestionHelpPopup) { this.congestionHelpPopup.remove(); this.congestionHelpPopup = null; }
-        
         if (targetZone && targetZone !== 'PJM') {
             this.congestionHelpPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'congestion-info-popup', maxWidth: '250px' })
-            .setLngLat([-72, 37]) 
-            .setHTML(CONGESTION_POPUP_HTML)
-            .addTo(this.map);
+            .setLngLat([-72, 37]).setHTML(CONGESTION_POPUP_HTML).addTo(this.map);
         }
     }
 
     handleMapHover(e) {
         if (!e.features[0]) return;
         const zone = e.features[0].properties.Zone_Name;
-        
-        // 1. Determine Data Source
         let dataSource = null;
-        if (this.isAverageMode) {
-            dataSource = this.averageDataCache;
-        } else if (this.timeSeriesData.length > 0) {
-            const step = this.timeSeriesData[this.currentIndex];
-            dataSource = step ? step.readings : null;
-        }
-
-        // 2. Get Value via Helper
+        if (this.isAverageMode) { dataSource = this.averageDataCache; } 
+        else if (this.timeSeriesData.length > 0) { const step = this.timeSeriesData[this.currentIndex]; dataSource = step ? step.readings : null; }
         const val = this.getZoneValue(zone, dataSource);
-
-        this.hoverPopup.setLngLat(e.lngLat)
-            .setHTML(createZonePopupHTML(zone, this.activePriceType, val))
-            .addTo(this.map);
+        this.hoverPopup.setLngLat(e.lngLat).setHTML(createZonePopupHTML(zone, this.activePriceType, val)).addTo(this.map);
     }
 
     handleMapClick(e) {
         if (!e.features.length) return;
         const clickedZone = e.features[0].properties.Zone_Name;
-
         if (e.originalEvent.shiftKey && this.activePriceType === 'congestion') {
             this.selectedZoneName = clickedZone;
             this.updateZoneBorders();
             this.renderCurrentView();
-            
-            new maplibregl.Popup({ closeButton: false })
-                .setLngLat(e.lngLat)
-                .setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513; padding:2px;">New Reference: ${clickedZone}</div>`)
-                .addTo(this.map);
+            new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat).setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513; padding:2px;">New Reference: ${clickedZone}</div>`).addTo(this.map);
             return;
         }
-
         const sidebarItem = document.querySelector(`.zone-item[data-zone-name="${clickedZone}"]`);
         if (sidebarItem) sidebarItem.click();
     }
 
-    setPriceType(type) {
-        this.activePriceType = type;
-        this.updateZoneBorders();
-        this.renderCurrentView();
-    }
-
-    setPlaybackSpeed(val) {
-        this.playbackSpeed = 3100 - val;
-        if (this.timer) {
-            clearInterval(this.timer);
-            this.startAnimation();
-        }
-    }
-
-    startAnimation() {
-        this.ui.playBtn.innerText = 'Pause';
-        this.timer = setInterval(() => {
-            const nextIndex = this.currentIndex + 1;
-            if (nextIndex >= this.timeSeriesData.length) {
-                this.stopAnimation();
-            } else {
-                this.renderTimeStep(nextIndex);
-            }
-        }, this.playbackSpeed);
-    }
-
-    stopAnimation() {
-        if (this.timer) {
-            clearInterval(this.timer);
-            this.timer = null;
-        }
-        this.ui.playBtn.innerText = 'Play';
-    }
-
-    togglePlay() {
-        if (this.timer) {
-            this.stopAnimation();
-        } else {
-            if (this.currentIndex >= this.timeSeriesData.length - 1) this.renderTimeStep(0);
-            this.startAnimation();
-        }
-    }
+    setPriceType(type) { this.activePriceType = type; this.updateZoneBorders(); this.renderCurrentView(); }
+    setPlaybackSpeed(val) { this.playbackSpeed = 3100 - val; if (this.timer) { clearInterval(this.timer); this.startAnimation(); } }
+    startAnimation() { this.ui.playBtn.innerText = 'Pause'; this.timer = setInterval(() => { const nextIndex = this.currentIndex + 1; if (nextIndex >= this.timeSeriesData.length) { this.stopAnimation(); } else { this.renderTimeStep(nextIndex); } }, this.playbackSpeed); }
+    stopAnimation() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.ui.playBtn.innerText = 'Play'; }
+    togglePlay() { if (this.timer) { this.stopAnimation(); } else { if (this.currentIndex >= this.timeSeriesData.length - 1) this.renderTimeStep(0); this.startAnimation(); } }
 }

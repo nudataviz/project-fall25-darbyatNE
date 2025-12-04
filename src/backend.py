@@ -39,7 +39,6 @@ def get_db():
     finally:
         db.close()
 
-# 1. Modified Model: Everything optional except start/end day
 class LmpRangeQuery(BaseModel):
     start_day: str
     end_day: str
@@ -86,8 +85,6 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
         params["start_hour"] = query.start_hour
         params["end_hour"] = query.end_hour
 
-        # --- BASE QUERY STRINGS ---
-        
         # LMP Query 
         lmp_query_str = """
             SELECT
@@ -126,7 +123,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
 
         # --- DYNAMIC FILTERS ---
 
-        # 1. Day of Week Filter
+        # Day of Week Filter
         if query.days_of_week:
             dow_clause_da = " AND DAYOFWEEK(da.datetime_beginning_ept) IN :days_of_week"
             dow_clause_con = " AND DAYOFWEEK(datetime_beginning_ept) IN :days_of_week"
@@ -136,7 +133,7 @@ def get_lmp_data_for_range(query: LmpRangeQuery, db: Session = Depends(get_db)):
             
             params["days_of_week"] = tuple(query.days_of_week)
 
-        # 2. Selected Constraint Filter
+        # Selected Constraint Filter
         if query.monitored_facility:
             subquery = """
                 SELECT DISTINCT DATE_FORMAT(datetime_beginning_ept, '%Y-%m-%d %H:00:00')

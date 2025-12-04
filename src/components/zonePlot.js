@@ -458,29 +458,48 @@ export class ZonePlotManager {
         .style("text-anchor", "end");
     }
 
-    // Add legend
-    const legend = svg.append("g")
-      .attr("class", "legend")
-      .attr("transform", `translate(${containerWidth - 150}, ${marginTop})`);
+    // Add legend (styled to match map legend)
+    const legendContainer = svg.append("foreignObject")
+      .attr("x", containerWidth - 150)
+      .attr("y", marginTop)
+      .attr("width", 140)
+      .attr("height", 400);
 
-    let legendY = 0;
+    const legendDiv = legendContainer.append("xhtml:div")
+      .style("background-color", "rgba(255, 255, 255, 0.95)")
+      .style("padding", "10px")
+      .style("border-radius", "5px")
+      .style("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.2)")
+      .style("font-family", "sans-serif")
+      .style("font-size", "12px")
+      .style("line-height", "1.4");
+
+    legendDiv.append("xhtml:strong")
+      .style("display", "block")
+      .style("margin-bottom", "6px")
+      .style("font-size", "13px")
+      .style("border-bottom", "1px solid #ccc")
+      .style("padding-bottom", "4px")
+      .style("color", "#333")
+      .text("Selected Zones");
+
     this.selectedZones.forEach(zoneName => {
-      const legendItem = legend.append("g")
-        .attr("transform", `translate(0, ${legendY})`);
+      const legendItem = legendDiv.append("xhtml:div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("margin-bottom", "3px");
 
-      legendItem.append("circle")
-        .attr("cx", 6)
-        .attr("cy", 0)
-        .attr("r", 4)
-        .attr("fill", colorScale(zoneName));
+      legendItem.append("xhtml:span")
+        .style("width", "16px")
+        .style("height", "16px")
+        .style("border-radius", "3px")
+        .style("margin-right", "8px")
+        .style("border", "1px solid rgba(0,0,0,0.2)")
+        .style("flex-shrink", "0")
+        .style("background-color", colorScale(zoneName));
 
-      legendItem.append("text")
-        .attr("x", 15)
-        .attr("y", 4)
-        .style("font-size", "11px")
+      legendItem.append("xhtml:span")
         .text(zoneName);
-
-      legendY += 18;
     });
 
     // Add title

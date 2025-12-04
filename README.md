@@ -1,5 +1,4 @@
 # PJM ECHO: A Visual Analytics App for Analyzing Electricity Market Prices
-**CS7250 Semester Project** | **Team:** Ben Darby & Ben Henshaw
 
 <div align="center">
   <img src="src/img/PJM_Map.png" alt="PJM LMP Map" width="600">

@@ -214,22 +214,26 @@ export class ZonePlotManager {
     const marginTop = 40;
     const marginBottom = 30;
 
-    // Get data extent
-    const xExtent = d3.extent(data, d => d.timestamp);
+    // Get unique sorted timestamps and create ordinal mapping
+    const uniqueTimestamps = Array.from(new Set(data.map(d => d.timestamp.getTime())))
+      .sort((a, b) => a - b)
+      .map(t => new Date(t));
+
+    // Create ordinal scale for x-axis (removes gaps)
+    const xScale = d3.scalePoint()
+      .domain(uniqueTimestamps.map(d => d.getTime()))
+      .range([marginLeft, containerWidth - marginRight])
+      .padding(0.1);
+
     const yExtent = d3.extent(data, d => d.price);
-
-    // Create scales
-    const xScale = d3.scaleUtc()
-      .domain(xExtent)
-      .range([marginLeft, containerWidth - marginRight]);
-
     const yScale = d3.scaleLinear()
       .domain(yExtent)
       .range([focusHeight - marginBottom, marginTop]);
 
-    const xScaleContext = d3.scaleUtc()
-      .domain(xExtent)
-      .range([marginLeft, containerWidth - marginRight]);
+    const xScaleContext = d3.scalePoint()
+      .domain(uniqueTimestamps.map(d => d.getTime()))
+      .range([marginLeft, containerWidth - marginRight])
+      .padding(0.1);
 
     const yScaleContext = d3.scaleLinear()
       .domain(yExtent)
@@ -283,30 +287,59 @@ export class ZonePlotManager {
     // Group data by zone
     const dataByZone = d3.group(data, d => d.zone);
 
-    // Draw scatter points in focus (clipped)
-    const focusScatter = focus.append("g")
+    // Draw lines in focus (clipped)
+    const focusLines = focus.append("g")
       .attr("clip-path", "url(#clip)");
 
+    // Line generator
+    const line = d3.line()
+      .x(d => xScale(d.timestamp.getTime()))
+      .y(d => yScale(d.price))
+      .curve(d3.curveMonotoneX);
+
     dataByZone.forEach((zoneData, zoneName) => {
-      focusScatter.selectAll(`.dot-${zoneName.replace(/\W/g, '_')}`)
-        .data(zoneData)
+      // Sort by timestamp
+      const sortedData = zoneData.sort((a, b) => a.timestamp - b.timestamp);
+      
+      focusLines.append("path")
+        .datum(sortedData)
+        .attr("class", `line-${zoneName.replace(/\W/g, '_')}`)
+        .attr("fill", "none")
+        .attr("stroke", colorScale(zoneName))
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.8)
+        .attr("d", line);
+
+      // Add dots on top of lines
+      focusLines.selectAll(`.dot-${zoneName.replace(/\W/g, '_')}`)
+        .data(sortedData)
         .join("circle")
         .attr("class", `dot-${zoneName.replace(/\W/g, '_')}`)
-        .attr("cx", d => xScale(d.timestamp))
+        .attr("cx", d => xScale(d.timestamp.getTime()))
         .attr("cy", d => yScale(d.price))
         .attr("r", 3)
         .attr("fill", colorScale(zoneName))
-        .attr("opacity", 0.7)
         .attr("stroke", "white")
-        .attr("stroke-width", 0.5);
+        .attr("stroke-width", 1);
     });
 
     // Add axes to focus
-    focus.append("g")
-      .attr("transform", `translate(0,${focusHeight - marginBottom})`)
-      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%m/%d %H:%M")))
-      .selectAll("text")
-      .style("font-size", "11px");
+    const xAxisGroup = focus.append("g")
+      .attr("class", "x-axis")
+      .attr("transform", `translate(0,${focusHeight - marginBottom})`);
+    
+    xAxisGroup.call(d3.axisBottom(xScale)
+      .tickValues(xScale.domain().filter((d, i) => {
+        // Show fewer ticks to avoid crowding
+        const totalTicks = xScale.domain().length;
+        const interval = Math.max(1, Math.floor(totalTicks / 10));
+        return i % interval === 0;
+      }))
+      .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d))))
+    .selectAll("text")
+      .style("font-size", "11px")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end");
 
     focus.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
@@ -324,23 +357,35 @@ export class ZonePlotManager {
       .style("font-weight", "500")
       .text(`${priceTypeLabels[this.currentPriceType]} Price ($/MWh)`);
 
-    // Draw scatter in context
+    // Draw lines in context
+    const lineContext = d3.line()
+      .x(d => xScaleContext(d.timestamp.getTime()))
+      .y(d => yScaleContext(d.price))
+      .curve(d3.curveMonotoneX);
+
     dataByZone.forEach((zoneData, zoneName) => {
-      context.selectAll(`.dot-context-${zoneName.replace(/\W/g, '_')}`)
-        .data(zoneData)
-        .join("circle")
-        .attr("class", `dot-context-${zoneName.replace(/\W/g, '_')}`)
-        .attr("cx", d => xScaleContext(d.timestamp))
-        .attr("cy", d => yScaleContext(d.price))
-        .attr("r", 1.5)
-        .attr("fill", colorScale(zoneName))
-        .attr("opacity", 0.6);
+      const sortedData = zoneData.sort((a, b) => a.timestamp - b.timestamp);
+      
+      context.append("path")
+        .datum(sortedData)
+        .attr("class", `line-context-${zoneName.replace(/\W/g, '_')}`)
+        .attr("fill", "none")
+        .attr("stroke", colorScale(zoneName))
+        .attr("stroke-width", 1.5)
+        .attr("opacity", 0.7)
+        .attr("d", lineContext);
     });
 
     // Add axis to context
     context.append("g")
       .attr("transform", `translate(0,${contextHeight - 20})`)
-      .call(d3.axisBottom(xScaleContext).ticks(8).tickFormat(d3.timeFormat("%m/%d")))
+      .call(d3.axisBottom(xScaleContext)
+        .tickValues(xScaleContext.domain().filter((d, i) => {
+          const totalTicks = xScaleContext.domain().length;
+          const interval = Math.max(1, Math.floor(totalTicks / 8));
+          return i % interval === 0;
+        }))
+        .tickFormat(d => d3.timeFormat("%m/%d")(new Date(d))))
       .selectAll("text")
       .style("font-size", "10px");
 
@@ -363,21 +408,54 @@ export class ZonePlotManager {
     function brushed(event) {
       if (!event.selection) return;
       
-      const [x0, x1] = event.selection.map(xScaleContext.invert);
-      xScale.domain([x0, x1]);
-
-      // Update focus scatter
-      dataByZone.forEach((zoneData, zoneName) => {
-        focusScatter.selectAll(`.dot-${zoneName.replace(/\W/g, '_')}`)
-          .attr("cx", d => xScale(d.timestamp))
-          .attr("cy", d => yScale(d.price));
+      const [x0Px, x1Px] = event.selection;
+      
+      // Find timestamps that fall within the brush selection
+      const selectedTimestamps = uniqueTimestamps.filter(t => {
+        const pos = xScaleContext(t.getTime());
+        return pos >= x0Px && pos <= x1Px;
       });
 
-      // Update focus x-axis
-      focus.select("g")
-        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%m/%d %H:%M")))
-        .selectAll("text")
-        .style("font-size", "11px");
+      if (selectedTimestamps.length === 0) return;
+
+      // Update focus scale domain to only selected timestamps
+      xScale.domain(selectedTimestamps.map(d => d.getTime()));
+
+      // Update focus lines
+      dataByZone.forEach((zoneData, zoneName) => {
+        const sortedData = zoneData
+          .filter(d => selectedTimestamps.some(t => t.getTime() === d.timestamp.getTime()))
+          .sort((a, b) => a.timestamp - b.timestamp);
+        
+        focusLines.select(`.line-${zoneName.replace(/\W/g, '_')}`)
+          .datum(sortedData)
+          .attr("d", line);
+
+        focusLines.selectAll(`.dot-${zoneName.replace(/\W/g, '_')}`)
+          .data(sortedData, d => d.timestamp.getTime())
+          .join("circle")
+          .attr("class", `dot-${zoneName.replace(/\W/g, '_')}`)
+          .attr("cx", d => xScale(d.timestamp.getTime()))
+          .attr("cy", d => yScale(d.price))
+          .attr("r", 3)
+          .attr("fill", colorScale(zoneName))
+          .attr("stroke", "white")
+          .attr("stroke-width", 1);
+      });
+
+      // Update focus x-axis - remove old axis and create new one
+      xAxisGroup.selectAll("*").remove();
+      xAxisGroup.call(d3.axisBottom(xScale)
+        .tickValues(xScale.domain().filter((d, i) => {
+          const totalTicks = xScale.domain().length;
+          const interval = Math.max(1, Math.floor(totalTicks / 10));
+          return i % interval === 0;
+        }))
+        .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d))))
+      .selectAll("text")
+        .style("font-size", "11px")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
     }
 
     // Add legend

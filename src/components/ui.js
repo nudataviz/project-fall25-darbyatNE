@@ -110,3 +110,36 @@ export function buildLegend(currentScale) {
     });
     container.innerHTML = html;
 }
+
+// --- NEW: Logic for Getting Started Ribbon & Modals ---
+export function initInfoModals() {
+    // 1. Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('header-help-menu');
+        const btn = event.target.closest('.header-btn');
+        if (menu && menu.style.display === 'block' && !btn && !menu.contains(event.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    // 2. Bind Modal Buttons
+    const btnGuide = document.getElementById('btn-guide');
+    const btnSetup = document.getElementById('btn-setup');
+    const menu = document.getElementById('header-help-menu');
+
+    if (btnGuide) {
+        btnGuide.onclick = (e) => {
+            e.preventDefault();
+            if(menu) menu.style.display = 'none';
+            document.getElementById('guide-modal').showModal();
+        };
+    }
+
+    if (btnSetup) {
+        btnSetup.onclick = (e) => {
+            e.preventDefault();
+            if(menu) menu.style.display = 'none';
+            document.getElementById('setup-modal').showModal();
+        };
+    }
+}

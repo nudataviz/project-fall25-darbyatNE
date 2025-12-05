@@ -17,7 +17,8 @@ The application is built on a modular architecture to ensure scalability and sep
 
 To transition this project from a static demo to a fully functional analytics tool, you must also configure the underlying data infrastructure (MySQL, PJM API, MapTiler) and ingest historical data.
 
-**Please refer to the [`System_Architecture_and_Deployment_Guide.pdf`](System_Architecture_and_Deployment_Guide.pdf) located in the root directory.**
+Please refer to the <span style="color: DodgerBlue; font-weight: bold;">System_Architecture_and_Deployment_Guide.pdf</span> located in the root directory.
+
 
 This document provides a comprehensive, step-by-step manual on:
 *   **Acquiring Credentials:** How to set up PJM Data Miner, MapTiler, and AWS/Local MySQL accounts.
@@ -56,7 +57,7 @@ conda activate lmp-env
 The ingestion scripts (detailed in the PDF guide) will automatically structure your database according to the schema below:
 
 <div align="center">
-  <img src="src/img/db_schema.png" alt="Schema of DB" width="600">
+  <img src="./img/db_schema.png" alt="Schema of DB" width="600">
 </div>
 
 ---

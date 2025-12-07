@@ -142,18 +142,18 @@ label[for="price-net"] {
 
 /* 2. Congestion Button (DEFAULT / UNCHECKED State) */
 label[for="price-cong"] {
-  background-color: #dcdcdc !important;    /* Darker grey when inactive */
+  background-color: #aaaaaa !important;   
   font-weight: 600;
-  color: #d32f2f;                          /* Red text when inactive */
+  color: #e1e806;                         
   padding-left: 15px !important;           
   margin-left: 0 !important;               
 }
 
 /* 3. Congestion Button (CHECKED / ACTIVE State) */
-/* This forces it back to Blue/White when you click it */
+
 input#price-cong:checked + label {
-  background-color: #007bff !important;    /* Standard Blue */
-  color: white !important;                 /* Standard White text */
+  background-color: #007bff !important;  
+  color: white !important;                
 }
 
 /* --- Filter Readout --- */

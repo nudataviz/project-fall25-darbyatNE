@@ -51,30 +51,22 @@ export class ZonePlotManager {
   }
 
   setupZoneCheckboxes() {
-    // Add checkboxes to existing zone list items
     const zoneItems = document.querySelectorAll('.zone-item');
     
     zoneItems.forEach(item => {
       const zoneName = item.dataset.zoneName;
-      
-      // Skip PJM aggregate
       if (zoneName === 'PJM') return;
-      
-      // Check if checkbox already exists
       if (item.querySelector('.zone-checkbox')) return;
       
-      // Create checkbox
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'zone-checkbox';
       checkbox.dataset.zone = zoneName;
       
-      // Insert checkbox at the beginning
       item.insertBefore(checkbox, item.firstChild);
       
-      // Handle checkbox changes
       checkbox.addEventListener('change', (e) => {
-        e.stopPropagation(); // Prevent zone selection click
+        e.stopPropagation();
         this.handleZoneCheckbox(zoneName, checkbox.checked);
       });
     });
@@ -103,14 +95,13 @@ export class ZonePlotManager {
     const map = window.mapInstance;
     if (!map) return;
     
-    // Add highlight layer if it doesn't exist
     if (!map.getLayer('zone-selected')) {
       map.addLayer({
         id: 'zone-selected',
         type: 'line',
         source: 'zoneShapes',
         paint: {
-          'line-color': '#ff6b6b',
+          'line-color': '#cdd1d1ff',
           'line-width': 4
         },
         filter: ['in', ['get', 'Zone_Name'], ['literal', []]]
@@ -129,12 +120,9 @@ export class ZonePlotManager {
 
   clearSelection() {
     this.selectedZones.clear();
-    
-    // Uncheck all checkboxes
     document.querySelectorAll('.zone-checkbox').forEach(cb => {
       cb.checked = false;
     });
-    
     this.updateSelectionCount();
     this.updateZoneHighlights();
     this.plotContainer.innerHTML = '<p class="empty-state">Select zones using checkboxes in the sidebar to begin</p>';
@@ -146,7 +134,6 @@ export class ZonePlotManager {
 
     try {
       this.plotContainer.innerHTML = '<div class="loading">Processing data...</div>';
-
       const plotData = this.transformDataForPlot(timeSeriesData);
       this.renderFocusContextPlot(plotData);
     } catch (error) {
@@ -161,12 +148,10 @@ export class ZonePlotManager {
 
     timeSeriesData.forEach(timeStep => {
       const timestamp = new Date(timeStep.datetime);
-      
       selectedZonesArray.forEach(zoneName => {
         if (timeStep.readings && timeStep.readings[zoneName]) {
           const zoneInfo = timeStep.readings[zoneName];
           const price = zoneInfo[this.currentPriceType];
-          
           if (price !== null && price !== undefined) {
             plotData.push({
               timestamp: timestamp,
@@ -195,7 +180,6 @@ export class ZonePlotManager {
       congestion: 'Congestion'
     };
 
-    // Clear container and create wrapper
     this.plotContainer.innerHTML = '';
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
@@ -203,21 +187,18 @@ export class ZonePlotManager {
     wrapper.style.gap = '10px';
     wrapper.style.padding = '10px';
     
-    // Calculate dimensions
     const containerWidth = Math.min(window.innerWidth - 80, 1400);
     const focusHeight = 400;
     const contextHeight = 80;
     const marginLeft = 70;
     const marginRight = 20;
     const marginTop = 40;
-    const marginBottom = 30;
+    const marginBottom = 60; // Increased bottom margin for vertical labels
 
-    // Get unique sorted timestamps and create ordinal mapping
     const uniqueTimestamps = Array.from(new Set(data.map(d => d.timestamp.getTime())))
       .sort((a, b) => a - b)
       .map(t => new Date(t));
 
-    // Create ordinal scale for x-axis (removes gaps)
     const xScale = d3.scalePoint()
       .domain(uniqueTimestamps.map(d => d.getTime()))
       .range([marginLeft, containerWidth - marginRight])
@@ -237,11 +218,9 @@ export class ZonePlotManager {
       .domain(yExtent)
       .range([contextHeight - 20, 10]);
 
-    // Color scale for zones
     const colorScale = d3.scaleOrdinal(d3.schemeTableau10)
       .domain(Array.from(this.selectedZones));
 
-    // Create SVG
     const svg = d3.create("svg")
       .attr("width", containerWidth)
       .attr("height", focusHeight + contextHeight + 40)
@@ -249,7 +228,6 @@ export class ZonePlotManager {
       .style("max-width", "100%")
       .style("height", "auto");
 
-    // Add clip path for focus area
     svg.append("defs").append("clipPath")
       .attr("id", "clip")
       .append("rect")
@@ -258,16 +236,9 @@ export class ZonePlotManager {
       .attr("width", containerWidth - marginLeft - marginRight)
       .attr("height", focusHeight - marginTop - marginBottom);
 
-    // Focus chart group
-    const focus = svg.append("g")
-      .attr("class", "focus");
+    const focus = svg.append("g").attr("class", "focus");
+    const context = svg.append("g").attr("class", "context").attr("transform", `translate(0,${focusHeight + 20})`);
 
-    // Context chart group
-    const context = svg.append("g")
-      .attr("class", "context")
-      .attr("transform", `translate(0,${focusHeight + 20})`);
-
-    // Add grid lines to focus
     focus.append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${focusHeight - marginBottom})`)
@@ -282,21 +253,15 @@ export class ZonePlotManager {
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").attr("stroke", "#e0e0e0"));
 
-    // Group data by zone
     const dataByZone = d3.group(data, d => d.zone);
+    const focusLines = focus.append("g").attr("clip-path", "url(#clip)");
 
-    // Draw lines in focus (clipped)
-    const focusLines = focus.append("g")
-      .attr("clip-path", "url(#clip)");
-
-    // Line generator
     const line = d3.line()
       .x(d => xScale(d.timestamp.getTime()))
       .y(d => yScale(d.price))
       .curve(d3.curveMonotoneX);
 
     dataByZone.forEach((zoneData, zoneName) => {
-      // Sort by timestamp
       const sortedData = zoneData.sort((a, b) => a.timestamp - b.timestamp);
       
       focusLines.append("path")
@@ -308,7 +273,6 @@ export class ZonePlotManager {
         .attr("opacity", 0.8)
         .attr("d", line);
 
-      // Add dots on top of lines
       focusLines.selectAll(`.dot-${zoneName.replace(/\W/g, '_')}`)
         .data(sortedData)
         .join("circle")
@@ -320,24 +284,27 @@ export class ZonePlotManager {
         .attr("stroke", "white")
         .attr("stroke-width", 1);
     });
-
-    // Add axes to focus
+    // label X axis with dates
     const xAxisGroup = focus.append("g")
       .attr("class", "x-axis")
       .attr("transform", `translate(0,${focusHeight - marginBottom})`);
     
-    xAxisGroup.call(d3.axisBottom(xScale)
-      .tickValues(xScale.domain().filter((d, i) => {
-        // Show fewer ticks to avoid crowding
-        const totalTicks = xScale.domain().length;
-        const interval = Math.max(1, Math.floor(totalTicks / 10));
-        return i % interval === 0;
-      }))
-      .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d))))
-    .selectAll("text")
-      .style("font-size", "11px")
-      .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end");
+    // Helper to render axis
+    const renderXAxis = (group, scale) => {
+      group.call(d3.axisBottom(scale)
+        .tickValues(scale.domain()) // ⚠️ Show EVERY point in the domain (no filtering)
+        .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d)))
+      )
+      .selectAll("text")
+        .style("font-size", "9px")  // Smaller font to fit more
+        .attr("transform", "rotate(-90)") // Vertical rotation
+        .attr("dx", "-0.8em")
+        .attr("dy", "-0.5em")
+        .style("text-anchor", "end");
+    };
+
+    // Initial Axis Render
+    renderXAxis(xAxisGroup, xScale);
 
     focus.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
@@ -345,7 +312,6 @@ export class ZonePlotManager {
       .selectAll("text")
       .style("font-size", "11px");
 
-    // Add Y-axis label
     focus.append("text")
       .attr("transform", "rotate(-90)")
       .attr("x", -(focusHeight / 2))
@@ -355,7 +321,6 @@ export class ZonePlotManager {
       .style("font-weight", "500")
       .text(`${priceTypeLabels[this.currentPriceType]} Price ($/MWh)`);
 
-    // Draw lines in context
     const lineContext = d3.line()
       .x(d => xScaleContext(d.timestamp.getTime()))
       .y(d => yScaleContext(d.price))
@@ -363,7 +328,6 @@ export class ZonePlotManager {
 
     dataByZone.forEach((zoneData, zoneName) => {
       const sortedData = zoneData.sort((a, b) => a.timestamp - b.timestamp);
-      
       context.append("path")
         .datum(sortedData)
         .attr("class", `line-context-${zoneName.replace(/\W/g, '_')}`)
@@ -374,7 +338,6 @@ export class ZonePlotManager {
         .attr("d", lineContext);
     });
 
-    // Add axis to context
     context.append("g")
       .attr("transform", `translate(0,${contextHeight - 20})`)
       .call(d3.axisBottom(xScaleContext)
@@ -387,7 +350,6 @@ export class ZonePlotManager {
       .selectAll("text")
       .style("font-size", "10px");
 
-    // Add brush to context
     const brush = d3.brushX()
       .extent([[marginLeft, 0], [containerWidth - marginRight, contextHeight - 20]])
       .on("brush end", brushed);
@@ -396,19 +358,16 @@ export class ZonePlotManager {
       .attr("class", "brush")
       .call(brush);
 
-    // Style the brush
     brushG.selectAll(".selection")
       .attr("fill", "#007bff")
       .attr("fill-opacity", 0.2)
       .attr("stroke", "#007bff");
 
-    // Brush handler
     function brushed(event) {
       if (!event.selection) return;
       
       const [x0Px, x1Px] = event.selection;
       
-      // Find timestamps that fall within the brush selection
       const selectedTimestamps = uniqueTimestamps.filter(t => {
         const pos = xScaleContext(t.getTime());
         return pos >= x0Px && pos <= x1Px;
@@ -416,10 +375,8 @@ export class ZonePlotManager {
 
       if (selectedTimestamps.length === 0) return;
 
-      // Update focus scale domain to only selected timestamps
       xScale.domain(selectedTimestamps.map(d => d.getTime()));
 
-      // Update focus lines
       dataByZone.forEach((zoneData, zoneName) => {
         const sortedData = zoneData
           .filter(d => selectedTimestamps.some(t => t.getTime() === d.timestamp.getTime()))
@@ -441,22 +398,11 @@ export class ZonePlotManager {
           .attr("stroke-width", 1);
       });
 
-      // Update focus x-axis - remove old axis and create new one
+      // ✅ Re-render Axis with ALL ticks for the new domain
       xAxisGroup.selectAll("*").remove();
-      xAxisGroup.call(d3.axisBottom(xScale)
-        .tickValues(xScale.domain().filter((d, i) => {
-          const totalTicks = xScale.domain().length;
-          const interval = Math.max(1, Math.floor(totalTicks / 10));
-          return i % interval === 0;
-        }))
-        .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d))))
-      .selectAll("text")
-        .style("font-size", "11px")
-        .attr("transform", "rotate(-45)")
-        .style("text-anchor", "end");
+      renderXAxis(xAxisGroup, xScale);
     }
 
-    // Add legend (styled to match map legend)
     const legendContainer = svg.append("foreignObject")
       .attr("x", containerWidth - 150)
       .attr("y", marginTop)
@@ -500,7 +446,6 @@ export class ZonePlotManager {
         .text(zoneName);
     });
 
-    // Add title
     svg.append("text")
       .attr("x", containerWidth / 2)
       .attr("y", 20)
@@ -509,7 +454,6 @@ export class ZonePlotManager {
       .style("font-weight", "600")
       .text("Price Analysis - Brush to Zoom");
 
-    // Add instruction text
     context.append("text")
       .attr("x", containerWidth / 2)
       .attr("y", contextHeight + 5)

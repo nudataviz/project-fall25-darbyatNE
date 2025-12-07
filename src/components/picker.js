@@ -169,7 +169,7 @@ export function dateTimeRangePicker(options = {}) {
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
     .call(d3.axisBottom(timeScale)
-        .tickValues([0, 4, 8, 12, 16, 20, 24]) 
+        .tickValues([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]) 
         .tickFormat(d => `${d}:00`)
     )
     .selectAll("text")

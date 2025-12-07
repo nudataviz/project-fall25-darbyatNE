@@ -3,6 +3,7 @@
 
 export default {
   title: "PJM LMP Visualization",
+  pager: false, 
   head: `
         <link rel="icon" href="/img/lmp_icon.png" type="image/png">
         <meta property="og:image" content="/img/observable.png">

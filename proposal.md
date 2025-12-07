@@ -4,7 +4,7 @@
 
 **Story:**  Allows users to visualize targeted market price data by zone to make price forecasts and get immediate answers to business questions like:
 
-"What was our real-time price exposure during peak hours last month?"<br>
+"What was our real-time price exposure during peak hours last week?"<br>
 "Are we consistently seeing price spikes on weekday mornings?"<br>
 "How did the Day-Ahead forecast compare to reality during the recent heatwave?"
 

@@ -111,9 +111,8 @@ export function buildLegend(currentScale) {
     container.innerHTML = html;
 }
 
-// --- NEW: Logic for Getting Started Ribbon & Modals ---
 export function initInfoModals() {
-    // 1. Close dropdown when clicking outside
+    // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
         const menu = document.getElementById('header-help-menu');
         const btn = event.target.closest('.header-btn');
@@ -122,7 +121,7 @@ export function initInfoModals() {
         }
     });
 
-    // 2. Bind Modal Buttons
+    // Bind Modal Buttons
     const btnGuide = document.getElementById('btn-guide');
     const btnSetup = document.getElementById('btn-setup');
     const menu = document.getElementById('header-help-menu');

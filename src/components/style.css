@@ -1,23 +1,31 @@
 /* src/components/style.css */
-
+/* ==========================================================================
+   1. GLOBAL LAYOUT & RESETS
+   ========================================================================== */
 :root {
   --max-width: none !important;
 }
 
-/* 2. Reset the main container */
+body {
+  overflow: hidden !important; /* Prevents scrollbars on the main window */
+  height: 90vh !important;
+}
+
+/* Reset the main Observable container */
 #observablehq-main {
   display: flex;
   flex-direction: column;
   width: auto !important; 
-
   max-width: 88% !important;
-  margin: 0 auto !important;
-  padding: 1rem !important; 
-
+  margin: 0 auto !important; 
+  /* Top padding creates space for content, Bottom padding for footer */
+  padding: 30px 1rem 1rem 1rem !important; 
   box-sizing: border-box;
 }
 
-/* --- Header Grid Layout  --- */
+/* ==========================================================================
+   2. PAGE HEADER (Title, Help Buttons)
+   ========================================================================== */
 #page-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr; 
@@ -42,7 +50,7 @@
 .header-left { display: flex; justify-content: flex-start; }
 .header-right { display: flex; justify-content: flex-end; }
 
-/* Button Styles for "Getting Started" */
+/* Getting Started Button */
 .header-btn {
   background: #007bff;
   color: white;
@@ -64,7 +72,7 @@
   display: none;
   position: absolute;
   top: 110%;
-  right: 0; /* Align to right edge of button container */
+  right: 0;
   z-index: 2000;
   background: white;
   border: 1px solid #ccc;
@@ -84,60 +92,164 @@
 }
 .header-dropdown a:hover { background-color: #f0f0f0; }
 
-/* --- End Header Updates --- */
-
+/* ==========================================================================
+   3. TOP CONTROLS (Price Types & Filters)
+   ========================================================================== */
 .top-controls-wrapper {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 20px; padding: 8px 20px; width: 100%; margin: 0;
-  font-family: sans-serif; box-sizing: border-box;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  gap: 20px; 
+  padding: 8px 20px; 
+  width: 100%; 
+  margin: 0;
+  font-family: sans-serif; 
+  box-sizing: border-box;
 }
 
+/* --- Price Selector Group --- */
+.price-selector { 
+  display: flex; 
+  border-radius: 5px; 
+  overflow: hidden; 
+  border: 1px solid #aaa; 
+  flex-shrink: 0; 
+}
+
+.price-selector input[type="radio"] { display: none; }
+
+.price-selector label {
+  padding: 8px 16px; 
+  cursor: pointer; 
+  background: #f0f0f0; 
+  user-select: none;
+  transition: background 0.2s; 
+  font-size: 14px; 
+  display: flex; 
+  align-items: center;
+}
+
+.price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
+.price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
+
+/* Congestion Type Uniqur Formatting */
+label[for="price-net"] {
+  border-right: 2px solid #666 !important; 
+  margin-right: 0 !important;              
+  padding-right: 15px !important;          
+  z-index: 1;                              
+}
+
+/* 2. Congestion Button (DEFAULT / UNCHECKED State) */
+label[for="price-cong"] {
+  background-color: #dcdcdc !important;    /* Darker grey when inactive */
+  font-weight: 600;
+  color: #d32f2f;                          /* Red text when inactive */
+  padding-left: 15px !important;           
+  margin-left: 0 !important;               
+}
+
+/* 3. Congestion Button (CHECKED / ACTIVE State) */
+/* This forces it back to Blue/White when you click it */
+input#price-cong:checked + label {
+  background-color: #007bff !important;    /* Standard Blue */
+  color: white !important;                 /* Standard White text */
+}
+
+/* --- Filter Readout --- */
 .filter-container {
-  display: flex; border: 1px solid #aaa; border-radius: 5px;
-  overflow: hidden; flex: 1; min-width: 0; background-color: #e7f3ff;
+  display: flex; 
+  border: 1px solid #aaa; 
+  border-radius: 5px;
+  overflow: hidden; 
+  flex: 1; 
+  min-width: 0; 
+  background-color: #e7f3ff;
 }
 
 .filter-label, .price-label {
-  padding: 8px 16px; background-color: #e0e0e0; color: #333;
-  font-weight: bold; font-size: 14px; border-right: 1px solid #aaa;
-  display: flex; align-items: center; white-space: nowrap; cursor: default;
+  padding: 8px 16px; 
+  background-color: #e0e0e0; 
+  color: #333;
+  font-weight: bold; 
+  font-size: 14px; 
+  border-right: 1px solid #aaa;
+  display: flex; 
+  align-items: center; 
+  white-space: nowrap; 
+  cursor: default;
 }
 
 #top-filter-display {
-  border: none; border-radius: 0; background-color: transparent;
-  padding: 6px 15px; font-size: 14px; flex: 1; min-width: 0;
-  display: flex; align-items: center;
+  border: none; 
+  border-radius: 0; 
+  background-color: transparent;
+  padding: 6px 15px; 
+  font-size: 14px; 
+  flex: 1; 
+  min-width: 0;
+  display: flex; 
+  align-items: center;
 }
 
 #top-filter-display ul {
-  list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 5px 20px;
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 5px 20px;
 }
 
 #top-filter-display li {
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 300px; line-height: 1.4;
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  max-width: 300px; 
+  line-height: 1.4;
 }
 
-.price-selector { display: flex; border-radius: 5px; overflow: hidden; border: 1px solid #aaa; flex-shrink: 0; }
-.price-selector input[type="radio"] { display: none; }
-.price-selector label {
-  padding: 8px 16px; cursor: pointer; background: #f0f0f0; user-select: none;
-  transition: background 0.2s; font-size: 14px; display: flex; align-items: center;
-}
-.price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
-.price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
-
+/* ==========================================================================
+   4. MAIN CONTAINER (Map + Sidebar Wrapper)
+   ========================================================================== */
 #main-container {
-  display: flex; width: 100%; border: 3px solid #444; border-radius: 5px;
-  font-family: sans-serif; margin: 0; box-sizing: border-box;
-  height: 75vh; min-height: 600px;
+  display: flex; 
+  width: 100%; 
+  border: 3px solid #444; 
+  border-radius: 5px;
+  font-family: sans-serif; 
+  margin: 0; 
+  box-sizing: border-box;
+  height: 75vh; 
+  min-height: 600px;
 }
 
-#map-container { flex: 1; height: 100%; display: flex; flex-direction: column; position: relative; min-width: 0; }
-#map { height: calc(100% - 40px); width: 100%; }
+/* ==========================================================================
+   5. MAP AREA & BOTTOM CONTROLS
+   ========================================================================== */
+#map-container { 
+  flex: 1; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  position: relative; 
+  min-width: 0; 
+}
+
+#map { 
+  height: calc(100% - 40px); 
+  width: 100%; 
+}
+
+/* --- Bottom Map Controls (Play, Slider, Speed) --- */
 #controls-container {
-  height: 40px; display: flex; align-items: center; padding: 0 15px;
-  border-top: 1px solid #ccc; background: #f8f9fa; gap: 10px;
+  height: 40px; 
+  display: flex; 
+  align-items: center; 
+  padding: 0 15px;
+  border-top: 1px solid #ccc; 
+  background: #f8f9fa; 
+  gap: 10px;
 }
 
 #controls-container button { cursor: pointer; padding: 4px 10px; margin-right: 5px; font-size: 13px; }
@@ -149,14 +261,45 @@
 
 #time-display { font-size: 16px; min-width: 150px; text-align: right; }
 
+/* --- Map Legend --- */
+#legend {
+  display: none; 
+  position: absolute; 
+  bottom: 50px; 
+  left: 10px; 
+  width: 120px;
+  max-height: 300px; 
+  overflow-y: auto; 
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 10px; 
+  border-radius: 5px; 
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-family: sans-serif; 
+  font-size: 12px; 
+  line-height: 1.4; 
+  z-index: 100;
+}
+#legend strong { display: block; margin-bottom: 6px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 4px; color: #333; }
+.legend-item { display: flex; align-items: center; margin-bottom: 3px; }
+.legend-color { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid rgba(0,0,0,0.2); flex-shrink: 0; }
+
+/* ==========================================================================
+   6. SIDEBAR (Zones & Constraints)
+   ========================================================================== */
 #sidebar {
-  width: 310px; height: 100%; border-left: 1px solid #ccc;
-  background: #f8f9fa; flex-shrink: 0; display: flex; flex-direction: row;
+  width: 310px; 
+  height: 100%; 
+  border-left: 1px solid #ccc;
+  background: #f8f9fa; 
+  flex-shrink: 0; 
+  display: flex; 
+  flex-direction: row;
 }
 
 #zone-section { width: 130px; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #ccc; }
 #constraint-section { width: 180px; display: flex; flex-direction: column; overflow: hidden; }
 
+/* Sidebar Headers */
 h4 {
   height: 30px; padding: 0 10px; margin: 0; background-color: #e9ecef;
   border-bottom: 1px solid #ccc; display: flex; align-items: center;
@@ -171,122 +314,77 @@ h4 {
 }
 .constraint-header-wrapper h4 { margin: 0; border: none; background: none; padding-bottom: 2px; height: auto; width: 100%; }
 
-.congestion-info-popup .maplibregl-popup-content {
-  background: rgba(255, 255, 255, 0.95); border: 1px solid #999;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 6px; padding: 10px;
-}
-.congestion-info-popup .maplibregl-popup-tip { display: none; }
-
+/* Toggle Switches */
 .c-toggle-container { display: flex; justify-content: center; gap: 10px; font-size: 10px; z-index: 5; }
 .c-toggle-container label { cursor: default; display: flex; align-items: center; gap: 3px; opacity: 1; }
 .c-toggle-container input[type="radio"]:checked { accent-color: #007bff; }
 
+/* Lists & Items */
 #zone-list, #constraint-list { flex: 1; overflow-y: auto; background: #6f726dff; }
 
 .zone-item, .constraint-row {
   padding: 2.5px 2px; border-bottom: 1px solid #ccc; font-size: 12px;
   display: flex; justify-content: space-between; align-items: center;
 }
-.zone-item { 
-  cursor: pointer; 
-  gap: 4px;
-}
+.zone-item { cursor: pointer; gap: 4px; }
 .zone-item:hover { background-color: #e2e6ea; }
 .zone-item.selected { background-color: #afb7c0ff; color: white; font-weight: bold; }
 .zone-item .zone-price { font-weight: bold; min-width: 40px; text-align: right; }
 
-/* Zone checkbox styling */
-.zone-checkbox {
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  flex-shrink: 0;
-  accent-color: #007bff;
-}
-
-.zone-item .zone-name {
-  flex: 1;
-  min-width: 0;
-}
+.zone-checkbox { cursor: pointer; width: 14px; height: 14px; margin: 0; flex-shrink: 0; accent-color: #007bff; }
+.zone-item .zone-name { flex: 1; min-width: 0; }
 
 .constraint-row .c-name { flex: 1; margin-right: 5px; word-wrap: break-word; line-height: 1.1; font-size: 10px; }
 .constraint-row .c-price { font-weight: bold; color: #2f37d3ff; white-space: nowrap; font-size: 14px; }
 
 .empty-state { padding: 15px; text-align: center; color: #666; font-style: italic; font-size: 11px; }
 
-#legend {
-  display: none; position: absolute; bottom: 50px; left: 10px; width: 120px;
-  max-height: 300px; overflow-y: auto; background-color: rgba(255, 255, 255, 0.95);
-  padding: 10px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  font-family: sans-serif; font-size: 12px; line-height: 1.4; z-index: 100;
-}
-#legend strong { display: block; margin-bottom: 6px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 4px; color: #333; }
-.legend-item { display: flex; align-items: center; margin-bottom: 3px; }
-.legend-color { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid rgba(0,0,0,0.2); flex-shrink: 0; }
+/* ==========================================================================
+   7. POPUPS & OVERLAYS
+   ========================================================================== */
 
-/* Congestion Popup Styles */
-.congestion-popup-content {
-    font-family: sans-serif;
-    text-align: center;
-    color: #333;
+/* Congestion Popup (Map) */
+.congestion-info-popup .maplibregl-popup-content {
+  background: rgba(255, 255, 255, 0.95); border: 1px solid #999;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 6px; padding: 10px;
 }
-.congestion-header {
-    display: block;
-    border-bottom: 1px solid #ccc;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    font-size: 13px;
-}
-.congestion-body {
-    font-size: 11px;
-    line-height: 1.4;
-}
-.congestion-highlight {
-    background-color: #333;
-    color: #FFFF00;
-    padding: 1px 4px;
-    font-weight: bold;
-    border-radius: 3px;
-}
+.congestion-info-popup .maplibregl-popup-tip { display: none; }
+
+.congestion-popup-content { font-family: sans-serif; text-align: center; color: #333; }
+.congestion-header { display: block; border-bottom: 1px solid #ccc; margin-bottom: 8px; padding-bottom: 4px; font-size: 13px; }
+.congestion-body { font-size: 11px; line-height: 1.4; }
+.congestion-highlight { background-color: #333; color: #FFFF00; padding: 1px 4px; font-weight: bold; border-radius: 3px; }
 
 /* Zone Hover Popup */
-.zone-popup-content {
-    font-family: sans-serif;
-    padding: 4px;
-    text-align: left;
-}
-
-.zone-popup-header {
-    font-size: 13px;
-    font-weight: bold;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.zone-popup-label {
-    color: #555;
-    font-size: 11px;
-    text-transform: uppercase;
-    margin-right: 4px;
-}
-
-.zone-popup-value {
-    font-weight: bold;
-    font-size: 13px;
-    color: #000;
-}
+.zone-popup-content { font-family: sans-serif; padding: 4px; text-align: left; }
+.zone-popup-header { font-size: 13px; font-weight: bold; display: block; margin-bottom: 2px; }
+.zone-popup-label { color: #555; font-size: 11px; text-transform: uppercase; margin-right: 4px; }
+.zone-popup-value { font-weight: bold; font-size: 13px; color: #000; }
 
 /* Reference Popup (Shift+Click) */
-.reference-popup {
-    font-size: 11px; 
-    font-weight: bold; 
-    color: #8B4513;
-    padding: 2px;
+.reference-popup { font-size: 11px; font-weight: bold; color: #8B4513; padding: 2px; }
+
+/* Observable Footer (Attribution) - Fixed to Bottom */
+#observablehq-footer, .observablehq-footer {
+  position: fixed !important;
+  bottom: 0 !important;      
+  left: 0 !important;      
+  top: auto !important;      
+  right: auto !important; 
+  margin: 0 !important;    
+  padding: 4px 8px !important; 
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+  border-top-left-radius: 5px;
+  font-size: 10px;
+  line-height: 1;          
 }
+#observablehq-footer:hover, .observablehq-footer:hover { opacity: 1; background: rgba(255,255,255,0.9); }
 
-/* ========== PLOT PANEL STYLES ========== */
-
+/* ==========================================================================
+   8. PLOT PANEL (Slide-up)
+   ========================================================================== */
 .plot-panel {
   position: fixed;
   bottom: 0;
@@ -302,9 +400,7 @@ h4 {
   overflow-y: auto;
 }
 
-.plot-panel.hidden {
-  transform: translateY(100%);
-}
+.plot-panel.hidden { transform: translateY(100%); }
 
 .plot-header {
   display: flex;
@@ -318,27 +414,13 @@ h4 {
   z-index: 10;
 }
 
-.plot-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
+.plot-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #333; }
 
-.plot-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+.plot-controls { display: flex; align-items: center; gap: 16px; }
 
-#selected-zones-count {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
-}
+#selected-zones-count { font-size: 14px; color: #666; font-weight: 500; }
 
-#clear-zones-btn,
-#close-plot-btn {
+#clear-zones-btn, #close-plot-btn {
   padding: 6px 12px;
   border: 1px solid #ccc;
   background: white;
@@ -349,23 +431,10 @@ h4 {
   font-family: sans-serif;
 }
 
-#clear-zones-btn:hover {
-  background: #f0f0f0;
-  border-color: #999;
-}
+#clear-zones-btn:hover { background: #f0f0f0; border-color: #999; }
 
-#close-plot-btn {
-  font-size: 20px;
-  font-weight: bold;
-  padding: 4px 10px;
-  color: #666;
-  line-height: 1;
-}
-
-#close-plot-btn:hover {
-  background: #e0e0e0;
-  color: #333;
-}
+#close-plot-btn { font-size: 20px; font-weight: bold; padding: 4px 10px; color: #666; line-height: 1; }
+#close-plot-btn:hover { background: #e0e0e0; color: #333; }
 
 #plot-content {
   padding: 24px;
@@ -385,21 +454,9 @@ h4 {
   font-family: sans-serif;
 }
 
-#plot-content .error {
-  color: #d32f2f;
-}
-
-#plot-content .empty-state {
-  font-style: italic;
-}
-
-/* Plot content when it has a chart */
-#plot-content:has(svg) {
-  display: block;
-  padding: 20px;
-}
+#plot-content .error { color: #d32f2f; }
+#plot-content .empty-state { font-style: italic; }
+#plot-content:has(svg) { display: block; padding: 20px; }
 
 /* Zone selection highlight on map */
-#zone-selected {
-  pointer-events: none;
-}
+#zone-selected { pointer-events: none; }

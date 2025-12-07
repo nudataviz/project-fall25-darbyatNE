@@ -21,19 +21,17 @@ export function dateTimeRangePicker(options = {}) {
   function parseLocal(input) {
       if (!input) return new Date();
       
-      // 1. String Input ("2025-06-30") -> Explicit Local Construction
+      // 1. String Input ("2025-06-30")
       if (typeof input === 'string') {
           const [y, m, d] = input.split('-').map(Number);
           return new Date(y, m - 1, d); 
       }
 
-      // 2. Date Object Input -> Strip Time completely
+      // 2. Date Object Input -> 
       if (input instanceof Date) {
-          // If it looks like UTC midnight, use UTC parts to make Local parts
           if (input.getUTCHours() === 0 && input.getUTCMinutes() === 0) {
                return new Date(input.getUTCFullYear(), input.getUTCMonth(), input.getUTCDate());
           }
-          // Otherwise just return local date components
           return new Date(input.getFullYear(), input.getMonth(), input.getDate());
       }
       return new Date();

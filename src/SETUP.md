@@ -13,7 +13,7 @@ The application is built on a modular architecture to ensure scalability and sep
 
 ---
 
-### 3. Infrastructure & Data Setup (Crucial Step)
+### 1. Infrastructure & Data Setup (Crucial Step)
 
 To transition this project from a static demo to a fully functional analytics tool, you must also configure the underlying data infrastructure (MySQL, PJM API, MapTiler) and ingest historical data.
 
@@ -26,7 +26,7 @@ This document provides a comprehensive, step-by-step manual on:
 
 > **Note:** The application requires this data foundation to be in place before the visualization features will function correctly.
 
-### 4. Configuration (.env)
+### 2. Configuration (.env)
 
 Once you have acquired your credentials as detailed in the PDF guide above, create a file named `.env` at the project root.
 
@@ -41,7 +41,7 @@ DB_PORT=3306
 BACKEND_URL=http://127.0.0.1:8000
 MAP_KEY=your_maptiler_map_key
 ```
-### 5. Environment Setup
+### 3. Environment Setup
 
 Create the Conda environment using the provided YAML file. This installs all necessary Python dependencies.
 
@@ -52,12 +52,13 @@ conda env create -f lmp_env.yml
 # Activate the environment
 conda activate lmp-env
 ```
-### 6. Database Schema Reference
+### 4. Database Schema Reference
 
-The ingestion scripts (detailed in the PDF guide) will automatically structure your database according to the schema below:
+The ingestion scripts (detailed in the PDF guide) will automatically structure your database according to the schema file:
 
-<div align="center">
+Please refer to the image <span style="color: DodgerBlue; font-weight: bold;">db_schema.png</span> located in the img directory.
+<!-- <div align="center">
   <img src="./img/db_schema.png" alt="Schema of DB" width="600">
-</div>
+</div> -->
 
 ---

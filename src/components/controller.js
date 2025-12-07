@@ -202,16 +202,37 @@ export class MapController {
     }
 
     updateZoneBorders() {
-        if (!this.map.getLayer('zoneLines')) return;
-        const targetZone = (this.activePriceType === 'congestion' && this.selectedZoneName) ? this.selectedZoneName : '';
-        this.map.setPaintProperty('zoneLines', 'line-width', ['case', ['==', ['get', 'Zone_Name'], targetZone], 6, 1.5]);
-        this.map.setPaintProperty('zoneLines', 'line-color', ['case', ['==', ['get', 'Zone_Name'], targetZone], '#FFFF00', '#000000']);
-        if (this.congestionHelpPopup) { this.congestionHelpPopup.remove(); this.congestionHelpPopup = null; }
-        if (targetZone && targetZone !== 'PJM') {
-            this.congestionHelpPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'congestion-info-popup', maxWidth: '250px' })
-            .setLngLat([-72, 37]).setHTML(CONGESTION_POPUP_HTML).addTo(this.map);
-        }
+    if (!this.map.getLayer('zoneLines')) return;
+    const targetZone = this.selectedZoneName || '';
+    const highlightColor = (this.activePriceType === 'congestion') ? '#FFFF00' : '#000000';
+
+    this.map.setPaintProperty('zoneLines', 'line-width', [
+        'case',
+        ['==', ['get', 'Zone_Name'], targetZone],
+        5,   // Selected zone border width
+        1.5  // Default zone border width
+    ]);
+
+    // Set Color:
+    this.map.setPaintProperty('zoneLines', 'line-color', [
+        'case',
+        ['==', ['get', 'Zone_Name'], targetZone],
+        highlightColor, // Yellow if congestion, Black otherwise
+        '#000000'       // Default color
+    ]);
+
+    // if in Congestion mode)
+    if (this.congestionHelpPopup) { 
+        this.congestionHelpPopup.remove(); 
+        this.congestionHelpPopup = null; 
     }
+
+    if (this.activePriceType === 'congestion' && targetZone && targetZone !== 'PJM') {
+        this.congestionHelpPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'congestion-info-popup', maxWidth: '250px' })
+        .setLngLat([-72, 37]).setHTML(CONGESTION_POPUP_HTML).addTo(this.map);
+    }
+}
+
 
     handleMapHover(e) {
         if (!e.features[0]) return;

@@ -13,7 +13,7 @@ pager: false
 <link rel="stylesheet" href="./components/style.css">
 <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
 
-<!-- 1. HEADER WITH RIBBON -->
+<!-- 1. Header With Ribbon for Help Docs-->
 <div id="page-header">
   <div class="header-left"></div>
   <h1>Interactive PJM LMP Map</h1>

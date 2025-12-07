@@ -15,8 +15,6 @@ export class ZonePlotManager {
     this.currentFilter = filter;
     this.currentPriceType = priceType;
     this.setupPlotContainer();
-    
-    // Wait a bit for the zone list to be populated
     setTimeout(() => {
       this.setupZoneCheckboxes();
     }, 100);

@@ -1,231 +1,189 @@
 /* src/components/style.css */
+
 /* ==========================================================================
-   1. GLOBAL LAYOUT & RESETS
+   1. GLOBAL LAYOUT & RESETS (COMPACT DEBUG MODE)
    ========================================================================== */
 :root {
   --max-width: none !important;
 }
 
 body {
-  overflow: hidden !important; /* Prevents scrollbars on the main window */
-  height: 90vh !important;
+  overflow: hidden !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  background: #f4f4f4; /* Light gray background to see boundaries */
 }
 
-/* Reset the main Observable container */
+/* Kill Dashboard Theme Wrapper Spacing */
+#observablehq-center {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Main Container - TIGHTER PADDING */
 #observablehq-main {
   display: flex;
   flex-direction: column;
-  width: auto !important; 
-  max-width: 88% !important;
+  width: 100% !important; 
+  max-width: 98% !important;
   margin: 0 auto !important; 
-  /* Top padding creates space for content, Bottom padding for footer */
-  padding: 30px 1rem 1rem 1rem !important; 
+  padding: 0 !important; /* Zero padding to prove we control the edges */
   box-sizing: border-box;
 }
 
 /* ==========================================================================
-   2. PAGE HEADER (Title, Help Buttons)
+   2. PAGE HEADER (SHRUNK)
    ========================================================================== */
 #page-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr; 
   align-items: center;
   width: 100%;
-  margin: 0 0 10px 0;
-  padding: 5px 0;
+  margin: 0;
+  padding: 2px 0; /* Tiny padding */
   font-family: sans-serif;
   box-sizing: border-box;
   border-bottom: 1px solid #ccc;
+  background: white;
+  height: 40px; /* Hard limit on header height */
 }
 
 #page-header h1 {
-  grid-column: 2; /* Center the title */
+  grid-column: 2; 
   margin: 0;
   color: #333;
-  font-size: 2rem;
+  font-size: 1.2rem; /* Much smaller font */
   white-space: nowrap;
   text-align: center;
+  line-height: 1;
 }
 
-.header-left { display: flex; justify-content: flex-start; }
-.header-right { display: flex; justify-content: flex-end; }
+.header-left, .header-right { display: flex; align-items: center; }
 
-/* Getting Started Button */
 .header-btn {
   background: #007bff;
   color: white;
   border: none;
-  padding: 6px 14px;
+  padding: 2px 8px; /* Smaller button */
   border-radius: 4px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: background 0.2s;
+  gap: 4px;
 }
-.header-btn:hover { background: #0056b3; }
 
 /* Dropdown Menu */
 .header-dropdown {
   display: none;
   position: absolute;
-  top: 110%;
+  top: 100%;
   right: 0;
   z-index: 2000;
   background: white;
   border: 1px solid #ccc;
-  border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  min-width: 160px;
-  padding: 5px 0;
+  min-width: 150px;
 }
-
 .header-dropdown a {
   display: block;
-  padding: 8px 15px;
+  padding: 6px 12px;
   color: #333;
   text-decoration: none;
-  font-size: 13px;
-  text-align: left; 
+  font-size: 12px;
 }
 .header-dropdown a:hover { background-color: #f0f0f0; }
 
 /* ==========================================================================
-   3. TOP CONTROLS (Price Types & Filters)
+   3. TOP CONTROLS (SHRUNK)
    ========================================================================== */
 .top-controls-wrapper {
   display: flex; 
   justify-content: space-between; 
   align-items: center;
-  gap: 20px; 
-  padding: 8px 20px; 
+  gap: 10px; 
+  padding: 4px 10px; 
   width: 100%; 
   margin: 0;
   font-family: sans-serif; 
   box-sizing: border-box;
+  height: 36px; /* Hard limit on controls height */
+  background: white;
 }
 
-/* --- Price Selector Group --- */
+/* Price Selector */
 .price-selector { 
   display: flex; 
-  border-radius: 5px; 
+  border-radius: 4px; 
   overflow: hidden; 
   border: 1px solid #aaa; 
-  flex-shrink: 0; 
 }
-
 .price-selector input[type="radio"] { display: none; }
-
 .price-selector label {
-  padding: 8px 16px; 
+  padding: 2px 10px; /* Tiny buttons */
   cursor: pointer; 
   background: #f0f0f0; 
-  user-select: none;
-  transition: background 0.2s; 
-  font-size: 14px; 
+  font-size: 11px; 
   display: flex; 
   align-items: center;
 }
-
 .price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
-.price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
+.price-selector input[type="radio"]:checked + label { background: #007bff; color: white; }
 
-/* Congestion Type Uniqur Formatting */
-label[for="price-net"] {
-  border-right: 2px solid #666 !important; 
-  margin-right: 0 !important;              
-  padding-right: 15px !important;          
-  z-index: 1;                              
-}
+/* Congestion Specifics */
+label[for="price-net"] { border-right: 2px solid #666 !important; margin-right: 0 !important; }
+label[for="price-cong"] { background-color: #aaaaaa !important; color: #e1e806; }
+input#price-cong:checked + label { background-color: #007bff !important; color: white !important; }
 
-/* 2. Congestion Button (DEFAULT / UNCHECKED State) */
-label[for="price-cong"] {
-  background-color: #aaaaaa !important;   
-  font-weight: 600;
-  color: #e1e806;                         
-  padding-left: 15px !important;           
-  margin-left: 0 !important;               
-}
-
-/* 3. Congestion Button (CHECKED / ACTIVE State) */
-
-input#price-cong:checked + label {
-  background-color: #007bff !important;  
-  color: white !important;                
-}
-
-/* --- Filter Readout --- */
+/* Filter Readout */
 .filter-container {
   display: flex; 
   border: 1px solid #aaa; 
-  border-radius: 5px;
+  border-radius: 4px;
   overflow: hidden; 
   flex: 1; 
-  min-width: 0; 
   background-color: #e7f3ff;
-}
-
-.filter-label, .price-label {
-  padding: 8px 16px; 
-  background-color: #e0e0e0; 
-  color: #333;
-  font-weight: bold; 
-  font-size: 14px; 
-  border-right: 1px solid #aaa;
-  display: flex; 
-  align-items: center; 
-  white-space: nowrap; 
-  cursor: default;
-}
-
-#top-filter-display {
-  border: none; 
-  border-radius: 0; 
-  background-color: transparent;
-  padding: 6px 15px; 
-  font-size: 14px; 
-  flex: 1; 
-  min-width: 0;
-  display: flex; 
+  height: 24px; /* Tiny height */
   align-items: center;
 }
-
-#top-filter-display ul {
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 5px 20px;
+.filter-label {
+  padding: 0 8px; 
+  background-color: #e0e0e0; 
+  font-weight: bold; 
+  font-size: 11px; 
+  border-right: 1px solid #aaa;
+  height: 100%;
+  display: flex; align-items: center;
 }
-
-#top-filter-display li {
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis;
-  max-width: 300px; 
-  line-height: 1.4;
+#top-filter-display {
+  padding: 0 10px; 
+  font-size: 11px; 
+  flex: 1; 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* ==========================================================================
-   4. MAIN CONTAINER (Map + Sidebar Wrapper)
+   4. MAIN CONTAINER (FORCED SMALLER)
    ========================================================================== */
 #main-container {
   display: flex; 
   width: 100%; 
-  border: 3px solid #444; 
-  border-radius: 5px;
+  border: 2px solid #444; 
+  border-radius: 4px;
   font-family: sans-serif; 
-  margin: 0; 
+  margin: 5px 0 0 0; 
   box-sizing: border-box;
-  height: 75vh; 
-  min-height: 600px;
+  background: white;
+
+  /* 👇 FORCE VISIBLE BOTTOM EDGE */
+  height: 65vh !important; 
+  min-height: 400px;
 }
 
 /* ==========================================================================
-   5. MAP AREA & BOTTOM CONTROLS
+   5. MAP AREA & CONTROLS
    ========================================================================== */
 #map-container { 
   flex: 1; 
@@ -235,276 +193,93 @@ input#price-cong:checked + label {
   position: relative; 
   min-width: 0; 
 }
-
 #map { 
-  height: calc(100% - 40px); 
+  flex: 1; /* Fill remaining space in container */
   width: 100%; 
 }
 
-/* --- Bottom Map Controls (Play, Slider, Speed) --- */
+/* Bottom Controls */
 #controls-container {
-  height: 40px; 
+  height: 32px; /* Smaller footer */
   display: flex; 
   align-items: center; 
-  padding: 0 15px;
+  padding: 0 10px;
   border-top: 1px solid #ccc; 
   background: #f8f9fa; 
-  gap: 10px;
+  gap: 8px;
 }
-#play-btn {
-  width: 60px; 
-  text-align: center;
-  justify-content: center;
-  display: inline-flex; /* Ensures content centers nicely */
-}
+#controls-container button { padding: 2px 8px; font-size: 11px; }
+#speed-box label { font-size: 8px; }
+#speed-slider { height: 4px; }
+#time-display { font-size: 13px; min-width: 120px; }
 
-#controls-container button { cursor: pointer; padding: 4px 10px; margin-right: 5px; font-size: 13px; }
-#avg-btn { font-size: 11px !important; padding: 6px 4px !important; }
-
-#speed-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; margin-right: 5px; }
-#speed-box label { font-size: 9px; color: #666; line-height: 1; margin-bottom: 2px; }
-#speed-slider { width: 100%; cursor: pointer; height: 5px; }
-
-#time-display { font-size: 16px; min-width: 150px; text-align: right; }
-
-/* --- Map Legend --- */
+/* Legend */
 #legend {
   display: none; 
   position: absolute; 
-  bottom: 50px; 
-  left: 10px; 
-  width: 120px;
-  max-height: 300px; 
-  overflow-y: auto; 
+  bottom: 40px; 
+  left: 5px; 
+  width: 110px;
+  max-height: 200px; 
   background-color: rgba(255, 255, 255, 0.95);
-  padding: 10px; 
-  border-radius: 5px; 
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  font-family: sans-serif; 
-  font-size: 12px; 
-  line-height: 1.4; 
+  padding: 5px; 
+  border-radius: 4px; 
+  font-size: 10px; 
   z-index: 100;
 }
-#legend strong { display: block; margin-bottom: 6px; font-size: 13px; border-bottom: 1px solid #ccc; padding-bottom: 4px; color: #333; }
-.legend-item { display: flex; align-items: center; margin-bottom: 3px; }
-.legend-color { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid rgba(0,0,0,0.2); flex-shrink: 0; }
 
 /* ==========================================================================
-   6. SIDEBAR (Zones & Constraints)
+   6. SIDEBAR
    ========================================================================== */
 #sidebar {
-  width: 310px; 
+  width: 260px; /* Narrower sidebar */
   height: 100%; 
   border-left: 1px solid #ccc;
   background: #f8f9fa; 
   flex-shrink: 0; 
   display: flex; 
-  flex-direction: row;
 }
+#zone-section { width: 110px; display: flex; flex-direction: column; border-right: 1px solid #ccc; }
+#constraint-section { width: 150px; display: flex; flex-direction: column; }
 
-#zone-section { width: 130px; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #ccc; }
-#constraint-section { width: 180px; display: flex; flex-direction: column; overflow: hidden; }
-
-/* Sidebar Headers */
 h4 {
-  height: 30px; padding: 0 10px; margin: 0; background-color: #e9ecef;
-  border-bottom: 1px solid #ccc; display: flex; align-items: center;
-  justify-content: center; text-align: center; font-size: 13px; color: #333; flex-shrink: 0;
+  height: 24px; font-size: 11px; background-color: #e9ecef; border-bottom: 1px solid #ccc;
+  display: flex; align-items: center; justify-content: center; margin: 0;
 }
-#zone-section h4 { height: 47px; border-bottom: 1px solid #ccc; }
+#zone-section h4 { height: 36px; }
+.constraint-header-wrapper { height: 37px; }
 
-.constraint-header-wrapper {
-  height: 48px; box-sizing: border-box; background-color: #e9ecef;
-  border-bottom: 1px solid #ccc; padding: 0 5px; display: flex;
-  flex-direction: column; justify-content: center; flex-shrink: 0;
-}
-.constraint-header-wrapper h4 { margin: 0; border: none; background: none; padding-bottom: 2px; height: auto; width: 100%; }
+.c-toggle-container { gap: 5px; font-size: 9px; padding-bottom: 2px; }
 
-/* Toggle Switches */
-.c-toggle-container { display: flex; justify-content: center; gap: 10px; font-size: 10px; z-index: 5; }
-.c-toggle-container label { cursor: default; display: flex; align-items: center; gap: 3px; opacity: 1; }
-.c-toggle-container input[type="radio"]:checked { accent-color: #007bff; }
-
-/* Lists & Items */
 #zone-list, #constraint-list { flex: 1; overflow-y: auto; background: #6f726dff; }
 
-.zone-item, .constraint-row {
-  padding: 2.5px 2px; border-bottom: 1px solid #ccc; font-size: 12px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.zone-item { cursor: pointer; gap: 4px; }
-.zone-item:hover { background-color: #e2e6ea; }
-.zone-item.selected { background-color: #afb7c0ff; color: white; font-weight: bold; }
-.zone-item .zone-price { font-weight: bold; min-width: 40px; text-align: right; }
-
-.zone-checkbox { cursor: pointer; width: 14px; height: 14px; margin: 0; flex-shrink: 0; accent-color: #007bff; }
-.zone-item .zone-name { flex: 1; min-width: 0; }
-
-.constraint-row .c-name { flex: 1; margin-right: 5px; word-wrap: break-word; line-height: 1.1; font-size: 10px; }
-.constraint-row .c-price { font-weight: bold; color: #2f37d3ff; white-space: nowrap; font-size: 14px; }
-
-.empty-state { padding: 15px; text-align: center; color: #666; font-style: italic; font-size: 11px; }
+.zone-item, .constraint-row { padding: 2px; font-size: 10px; border-bottom: 1px solid #ccc; }
+.zone-item .zone-price { font-size: 10px; }
+.constraint-row .c-price { font-size: 11px; }
 
 /* ==========================================================================
-   7. POPUPS & OVERLAYS
+   7. POPUPS & MODALS (Standard)
    ========================================================================== */
+.congestion-info-popup .maplibregl-popup-content { padding: 5px; }
+.congestion-header { font-size: 11px; margin-bottom: 4px; }
+.congestion-body { font-size: 10px; }
 
-/* Congestion Popup (Map) */
-.congestion-info-popup .maplibregl-popup-content {
-  background: rgba(255, 255, 255, 0.95); border: 1px solid #999;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 6px; padding: 10px;
-}
-.congestion-info-popup .maplibregl-popup-tip { display: none; }
-
-.congestion-popup-content { font-family: sans-serif; text-align: center; color: #333; }
-.congestion-header { display: block; border-bottom: 1px solid #ccc; margin-bottom: 8px; padding-bottom: 4px; font-size: 13px; }
-.congestion-body { font-size: 11px; line-height: 1.4; }
-.congestion-highlight { background-color: #333; color: #FFFF00; padding: 1px 4px; font-weight: bold; border-radius: 3px; }
-
-/* Zone Hover Popup */
-.zone-popup-content { font-family: sans-serif; padding: 4px; text-align: left; }
-.zone-popup-header { font-size: 13px; font-weight: bold; display: block; margin-bottom: 2px; }
-.zone-popup-label { color: #555; font-size: 11px; text-transform: uppercase; margin-right: 4px; }
-.zone-popup-value { font-weight: bold; font-size: 13px; color: #000; }
-
-/* Reference Popup (Shift+Click) */
-.reference-popup { font-size: 11px; font-weight: bold; color: #8B4513; padding: 2px; }
-
-/* Observable Footer (Attribution) - Fixed to Bottom */
-#observablehq-footer, .observablehq-footer {
+/* Observable Footer */
+#observablehq-footer {
   position: fixed !important;
   bottom: 0 !important;      
   left: 0 !important;      
-  top: auto !important;      
-  right: auto !important; 
-  margin: 0 !important;    
-  padding: 4px 8px !important; 
+  font-size: 9px !important;
+  padding: 2px 5px !important; 
   z-index: 500;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(2px);
-  border-top-left-radius: 5px;
-  font-size: 10px;
-  line-height: 1;          
-}
-#observablehq-footer:hover, .observablehq-footer:hover { opacity: 1; background: rgba(255,255,255,0.9); }
-
-/* ==========================================================================
-   8. PLOT PANEL (Slide-up)
-   ========================================================================== */
-.plot-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  border-top: 3px solid #444;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease-in-out;
-  transform: translateY(0);
-  z-index: 1000;
-  max-height: 65vh;
-  overflow-y: auto;
+  background: rgba(255,255,255,0.8);
 }
 
-.plot-panel.hidden { transform: translateY(100%); }
+/* Plot Panel */
+.plot-panel { border-top: 2px solid #444; }
+.plot-header { padding: 8px 15px; }
+.plot-header h3 { font-size: 14px; }
 
-.plot-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.plot-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #333; }
-
-.plot-controls { display: flex; align-items: center; gap: 16px; }
-
-#selected-zones-count { font-size: 14px; color: #666; font-weight: 500; }
-
-#clear-zones-btn, #close-plot-btn {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-  font-family: sans-serif;
-}
-
-#clear-zones-btn:hover { background: #f0f0f0; border-color: #999; }
-
-#close-plot-btn { font-size: 20px; font-weight: bold; padding: 4px 10px; color: #666; line-height: 1; }
-#close-plot-btn:hover { background: #e0e0e0; color: #333; }
-
-#plot-content {
-  padding: 24px;
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-}
-
-#plot-content .loading,
-#plot-content .error,
-#plot-content .empty-state {
-  text-align: center;
-  color: #666;
-  font-size: 16px;
-  font-family: sans-serif;
-}
-
-#plot-content .error { color: #d32f2f; }
-#plot-content .empty-state { font-style: italic; }
-#plot-content:has(svg) { display: block; padding: 20px; }
-
-/* Zone selection highlight on map */
-#zone-selected { pointer-events: none; }
-
-/* ... (Keep all your existing CSS) ... */
-
-/* ========================================= */
-/*      MODAL STYLING (For Picker)           */
-/* ========================================= */
-
-dialog#filter-modal {
-  position: fixed;
-  inset: 0;         
-  margin: auto;     
-  width: 600px;     /* ⚠️ Fixed Width 600px */
-  max-width: 95vw;
-  border: none;
-  border-radius: 8px;
-  padding: 0;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  background: white;
-  z-index: 2000;
-}
-
-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.modal-header {
-  background: #333;
-  color: white;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-}
+/* Picker Modal */
+dialog#filter-modal { width: 550px; }
+.modal-header { padding: 8px 12px; font-size: 14px; }

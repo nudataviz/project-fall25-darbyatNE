@@ -1,5 +1,3 @@
-// src/components/map.js
-
 import maplibregl from "npm:maplibre-gl";
 import * as d3 from "npm:d3";
 import { filter, saveFilter } from "./filter.js"; 
@@ -38,15 +36,12 @@ export function initApp() {
     // 3. Map Load Logic
     map.on('load', async () => {
         try {
-            // --- FIX #1: Add Header to Zone Shapes Fetch ---
+            // --- Add Header to Zone Shapes Fetch ---
             const shapesResponse = await fetch(`${API_BASE_URL}/api/zones`, {
                 headers: { "ngrok-skip-browser-warning": "true" }
             });
             const shapes = await shapesResponse.json();
-            // -----------------------------------------------
-
             shapes.features.forEach(f => f.properties.Zone_Name = f.properties.zone_name);
-
             const labelFeatures = shapes.features.flatMap(f => {
                 const zName = f.properties.Zone_Name;
                 const coords = ZONE_LABEL_OVERRIDES[zName] ? ZONE_LABEL_OVERRIDES[zName].map(c => [c[1], c[0]]) : [d3.geoCentroid(f)];
@@ -79,12 +74,32 @@ export function initApp() {
 
                 const zData = zones.find(z => z.name === item.dataset.zoneName);
                 if (zData) {
-                    map.flyTo({ center: zData.center, zoom: zData.name === 'PJM' ? 5.3 : 6, pitch: zData.name === 'PJM' ? 10 : 20 });
-                    controller.selectedZoneName = zData.name === 'PJM' ? null : zData.name;
+                    if (zData.name === 'PJM') {
+                        // Reset to Home View 
+                        map.flyTo({ 
+                            center: zData.center, 
+                            zoom: 5.3, 
+                            pitch: 10, 
+                            bearing: 0,     
+                            essential: true
+                        });
+                        controller.selectedZoneName = null;
+                    } else {
+                        // Go to Zone
+                        map.flyTo({ 
+                            center: zData.center, 
+                            zoom: 6, 
+                            pitch: 20, 
+                            bearing: map.getBearing()
+                        });
+                        controller.selectedZoneName = zData.name;
+                    }
+
                     controller.updateZoneBorders();
                     controller.renderCurrentView();
                 }
             });
+            // ---------------------------------
 
             buildLegend(COLOR_SCALE);
             document.getElementById('legend').style.display = 'block';

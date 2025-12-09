@@ -7,28 +7,19 @@
 }
 
 body {
-  overflow: hidden !important;
-  height: 95vh !important;    
-  margin: 0 !important;
-}
-
-#observablehq-center {
-  padding: 0 !important;
-  margin: 0 !important;
-  max-width: 100% !important;
+  overflow: hidden !important; /* Prevents scrollbars on the main window */
+  height: 90vh !important;
 }
 
 /* Reset the main Observable container */
 #observablehq-main {
   display: flex;
   flex-direction: column;
-  width: 100% !important; 
-  max-width: 96% !important; /* Slightly wider */
+  width: auto !important; 
+  max-width: 88% !important;
   margin: 0 auto !important; 
-  
-  /* 👇 UPDATED: Reduced top padding to 5px */
-  padding: 5px 1rem 1rem 1rem !important; 
-  
+  /* Top padding creates space for content, Bottom padding for footer */
+  padding: 30px 1rem 1rem 1rem !important; 
   box-sizing: border-box;
 }
 
@@ -40,18 +31,18 @@ body {
   grid-template-columns: 1fr auto 1fr; 
   align-items: center;
   width: 100%;
-  margin: 0 0 5px 0; /* Reduced bottom margin */
-  padding: 4px 0;    /* Reduced vertical padding */
+  margin: 0 0 10px 0;
+  padding: 5px 0;
   font-family: sans-serif;
   box-sizing: border-box;
   border-bottom: 1px solid #ccc;
 }
 
 #page-header h1 {
-  grid-column: 2; 
+  grid-column: 2; /* Center the title */
   margin: 0;
   color: #333;
-  font-size: 1.8rem; /* Slightly smaller to save space */
+  font-size: 2rem;
   white-space: nowrap;
   text-align: center;
 }
@@ -109,7 +100,7 @@ body {
   justify-content: space-between; 
   align-items: center;
   gap: 20px; 
-  padding: 5px 20px; /* Reduced vertical padding */
+  padding: 8px 20px; 
   width: 100%; 
   margin: 0;
   font-family: sans-serif; 
@@ -128,12 +119,12 @@ body {
 .price-selector input[type="radio"] { display: none; }
 
 .price-selector label {
-  padding: 6px 14px; /* Slightly tighter buttons */
+  padding: 8px 16px; 
   cursor: pointer; 
   background: #f0f0f0; 
   user-select: none;
   transition: background 0.2s; 
-  font-size: 13px; 
+  font-size: 14px; 
   display: flex; 
   align-items: center;
 }
@@ -141,7 +132,7 @@ body {
 .price-selector label:not(:last-of-type) { border-right: 1px solid #aaa; }
 .price-selector input[type="radio"]:checked + label { background: #007bff; color: white; font-weight: bold; }
 
-/* Congestion Type Unique Formatting */
+/* Congestion Type Uniqur Formatting */
 label[for="price-net"] {
   border-right: 2px solid #666 !important; 
   margin-right: 0 !important;              
@@ -149,6 +140,7 @@ label[for="price-net"] {
   z-index: 1;                              
 }
 
+/* 2. Congestion Button (DEFAULT / UNCHECKED State) */
 label[for="price-cong"] {
   background-color: #aaaaaa !important;   
   font-weight: 600;
@@ -156,6 +148,8 @@ label[for="price-cong"] {
   padding-left: 15px !important;           
   margin-left: 0 !important;               
 }
+
+/* 3. Congestion Button (CHECKED / ACTIVE State) */
 
 input#price-cong:checked + label {
   background-color: #007bff !important;  
@@ -174,11 +168,11 @@ input#price-cong:checked + label {
 }
 
 .filter-label, .price-label {
-  padding: 6px 14px; 
+  padding: 8px 16px; 
   background-color: #e0e0e0; 
   color: #333;
   font-weight: bold; 
-  font-size: 13px; 
+  font-size: 14px; 
   border-right: 1px solid #aaa;
   display: flex; 
   align-items: center; 
@@ -190,8 +184,8 @@ input#price-cong:checked + label {
   border: none; 
   border-radius: 0; 
   background-color: transparent;
-  padding: 4px 15px; 
-  font-size: 13px; 
+  padding: 6px 15px; 
+  font-size: 14px; 
   flex: 1; 
   min-width: 0;
   display: flex; 
@@ -226,7 +220,7 @@ input#price-cong:checked + label {
   font-family: sans-serif; 
   margin: 0; 
   box-sizing: border-box;
-  height: 78vh; /* Increased height slightly */
+  height: 75vh; 
   min-height: 600px;
 }
 
@@ -261,7 +255,7 @@ input#price-cong:checked + label {
   width: 60px; 
   text-align: center;
   justify-content: center;
-  display: inline-flex; 
+  display: inline-flex; /* Ensures content centers nicely */
 }
 
 #controls-container button { cursor: pointer; padding: 4px 10px; margin-right: 5px; font-size: 13px; }
@@ -376,7 +370,7 @@ h4 {
 /* Reference Popup (Shift+Click) */
 .reference-popup { font-size: 11px; font-weight: bold; color: #8B4513; padding: 2px; }
 
-/* Observable Footer - Fixed to Bottom */
+/* Observable Footer (Attribution) - Fixed to Bottom */
 #observablehq-footer, .observablehq-footer {
   position: fixed !important;
   bottom: 0 !important;      
@@ -473,6 +467,8 @@ h4 {
 /* Zone selection highlight on map */
 #zone-selected { pointer-events: none; }
 
+/* ... (Keep all your existing CSS) ... */
+
 /* ========================================= */
 /*      MODAL STYLING (For Picker)           */
 /* ========================================= */
@@ -481,7 +477,7 @@ dialog#filter-modal {
   position: fixed;
   inset: 0;         
   margin: auto;     
-  width: 600px;     
+  width: 600px;     /* ⚠️ Fixed Width 600px */
   max-width: 95vw;
   border: none;
   border-radius: 8px;

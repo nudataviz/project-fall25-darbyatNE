@@ -12,31 +12,47 @@ export class MapController {
         this.constraintsData = [];
         this.averageDataCache = {};
         this.globalConstraintCache = [];
+        
+        // State
         this.currentIndex = 0;
         this.playbackSpeed = 1000;
         this.timer = null;
         this.activePriceType = 'da'; 
         this.isAverageMode = false;
-        this.selectedZoneName = null;        
+        this.selectedZoneName = null;
+        
+        // Network Management
+        this.abortController = null;
+        
+        // Popups
         this.congestionHelpPopup = null;
         this.hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
     }
 
     getZoneValue(zoneName, dataMap) {
         if (!dataMap || !dataMap[zoneName]) return null;
+        
         if (this.activePriceType === 'congestion') {
             if (!this.selectedZoneName || !dataMap[this.selectedZoneName]) return null;
             if (zoneName === this.selectedZoneName) return 0;
+            
             const loadZonePrice = Number(dataMap[this.selectedZoneName].rt || 0);
             const remoteZonePrice = Number(dataMap[zoneName].rt || 0);
             return loadZonePrice - remoteZonePrice;
         }
+        
         return Number(dataMap[zoneName][this.activePriceType]);
     }
 
     async loadData(filter) {
         this.ui.timeDisplay.innerText = 'Querying Data...';
         this.stopAnimation();
+
+        // 1. Cancel any previous pending requests
+        if (this.abortController) {
+            this.abortController.abort();
+        }
+        this.abortController = new AbortController();
 
         try {
             const cleanDate = (d) => {
@@ -56,7 +72,10 @@ export class MapController {
             };
 
             const response = await fetch(`${API_BASE_URL}/api/lmp/range`, { 
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(query),
+                signal: this.abortController.signal // Attach signal
             });
             
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
@@ -79,65 +98,91 @@ export class MapController {
             displayCurrentFilter(filter, this.timeSeriesData.length);
             this.globalConstraintCache = calculateGlobalStats(this.constraintsData, this.timeSeriesData.length);
             this.averageDataCache = calculateZoneAverages(this.timeSeriesData);
+            
             this.ui.slider.max = this.timeSeriesData.length - 1;
             this.ui.slider.disabled = false;
             this.ui.playBtn.disabled = false;
+            
             this.renderAverageView();
 
         } catch (error) {
+            if (error.name === 'AbortError') return; // Ignore cancelled requests
             console.error("Fetch Error:", error);
             this.ui.timeDisplay.innerText = 'Data Error';
         }
     }
 
     renderCurrentView() {
-        if (this.isAverageMode) { this.renderAverageView(); } else { this.renderTimeStep(this.currentIndex); }
+        if (this.isAverageMode) { 
+            this.renderAverageView(); 
+        } else { 
+            this.renderTimeStep(this.currentIndex); 
+        }
+    }
+
+    /**
+     * Helper to update Map Colors and Sidebar based on a data source
+     */
+    updateMapAndSidebar(dataSource) {
+        const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') 
+            ? NET_COLOR_SCALE 
+            : COLOR_SCALE;
+
+        const colorExpression = ['case'];
+        let pjmSum = 0, pjmCount = 0;
+
+        for (const zone in dataSource) {
+            const val = this.getZoneValue(zone, dataSource);
+            
+            // 1. Build Map Color Expression
+            if (val !== null && !isNaN(val)) {
+                colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
+            }
+
+            // 2. Calculate PJM Average
+            if (val !== null && !isNaN(val)) {
+                // Don't include the reference zone in the average if in congestion mode
+                if (this.activePriceType === 'congestion' && zone === this.selectedZoneName) continue;
+                pjmSum += val; 
+                pjmCount++;
+            }
+        }
+        
+        // Apply Map Colors
+        colorExpression.push('#cccccc'); // Default gray
+        if (this.map.getLayer('zoneFill')) {
+            this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
+        }
+
+        // Update Sidebar
+        const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
+        this.updateSidebarPrices((z) => this.getZoneValue(z, dataSource), currentScale, pjmAvg);
     }
 
     renderAverageView() {
         this.isAverageMode = true;
         this.ui.timeDisplay.innerText = 'All Filtered Hours';
         this.ui.slider.value = 0;
+        
         setConstraintModeUI('global');
         renderConstraintList(this.globalConstraintCache, 'Avg $/MWHr');
 
-        const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
-        const colorExpression = ['case'];
-        const dataSource = this.averageDataCache;
-
-        for (const zone in dataSource) {
-            const val = this.getZoneValue(zone, dataSource);
-            if (val !== null && !isNaN(val)) {
-                colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
-            }
-        }
-        colorExpression.push('#cccccc');
-        if (this.map.getLayer('zoneFill')) this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
-
-        let pjmSum = 0, pjmCount = 0;
-        Object.keys(dataSource).forEach(zone => {
-            const val = this.getZoneValue(zone, dataSource);
-            if (val !== null && !isNaN(val)) {
-                if (this.activePriceType === 'congestion' && zone === this.selectedZoneName) return;
-                pjmSum += val; pjmCount++;
-            }
-        });
-        const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
-        this.updateSidebarPrices((z) => this.getZoneValue(z, dataSource), currentScale, pjmAvg);
+        this.updateMapAndSidebar(this.averageDataCache);
     }
 
     renderTimeStep(index) {
         this.isAverageMode = false;
+        
+        // Safety Check
+        if (!this.timeSeriesData || !this.timeSeriesData[index]) return;
+
         this.currentIndex = index;
         this.ui.slider.value = index;
         const data = this.timeSeriesData[index];
-        if (!data) return;
-
-        let displayDateStr = "Invalid Date";
         
+        let displayDateStr = "Invalid Date";
         if (data.datetime) {
             const match = data.datetime.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-            
             if (match) {
                 const [_, y, m, d, hr, min] = match;
                 const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
@@ -148,39 +193,21 @@ export class MapController {
                 displayDateStr = data.datetime;
             }
         }
-
         this.ui.timeDisplay.innerText = displayDateStr;
         
-        const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') ? NET_COLOR_SCALE : COLOR_SCALE;
-        const dataSource = data.readings;
-        const colorExpression = ['case'];
-        for (const zone in dataSource) {
-            const val = this.getZoneValue(zone, dataSource);
-            if (val !== null && !isNaN(val)) {
-                colorExpression.push(['==', ['get', 'Zone_Name'], zone], getColorForLmp(val, currentScale));
-            }
-        }
-        colorExpression.push('#cccccc');
-        if (this.map.getLayer('zoneFill')) this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
+        // Update Map and Sidebar using helper
+        this.updateMapAndSidebar(data.readings);
 
-        let pjmSum = 0, pjmCount = 0;
-        Object.keys(dataSource).forEach(zone => {
-            const val = this.getZoneValue(zone, dataSource);
-            if (val !== null && !isNaN(val)) {
-                if (this.activePriceType === 'congestion' && zone === this.selectedZoneName) return;
-                pjmSum += val; pjmCount++;
-            }
-        });
-        const pjmAvg = pjmCount > 0 ? pjmSum / pjmCount : 0;
-        this.updateSidebarPrices((z) => this.getZoneValue(z, dataSource), currentScale, pjmAvg);
-
+        // Update Constraints for this specific timestamp
         setConstraintModeUI('current');
         const currentTs = new Date(data.datetime.replace(' ', 'T')).getTime();
+        
         const activeConstraints = this.constraintsData
             .filter(c => new Date(c.timestamp.replace(' ', 'T')).getTime() === currentTs)
             .map(c => ({ name: c.name || c.monitored_facility, price: Number(c.shadow_price || 0) }))
             .sort((a, b) => a.price - b.price)
             .slice(0, 10);
+            
         renderConstraintList(activeConstraints, 'Shadow Price');
     }
 
@@ -189,8 +216,14 @@ export class MapController {
             const zName = item.dataset.zoneName;
             const priceSpan = item.querySelector('.zone-price');
             if (!priceSpan) return;
+            
             let val;
-            if (zName === 'PJM') { val = pjmAvg; } else { val = getValueFn(zName); }
+            if (zName === 'PJM') { 
+                val = pjmAvg; 
+            } else { 
+                val = getValueFn(zName); 
+            }
+            
             if (val !== null && val !== undefined && !isNaN(val)) {
                 priceSpan.innerText = `$${val.toFixed(2)}`;
                 priceSpan.style.color = getColorForLmp(val, scale);
@@ -213,7 +246,6 @@ export class MapController {
             1.5  // Default zone border width
         ]);
 
-        // Set Color:
         this.map.setPaintProperty('zoneLines', 'line-color', [
             'case',
             ['==', ['get', 'Zone_Name'], targetZone],
@@ -227,11 +259,8 @@ export class MapController {
         }
 
         if (this.activePriceType === 'congestion' && targetZone && targetZone !== 'PJM') {
-            // 1. Create a DOM element for the popup
             const popupNode = document.createElement('div');
             
-            // 2. Build the HTML structure manually to GUARANTEE the X button exists
-            // We use inline styles to ensure it looks like a box immediately
             popupNode.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
                     <strong style="font-size: 12px; color: #333;">Congestion Info</strong>
@@ -242,11 +271,10 @@ export class MapController {
                 </div>
             `;
 
-            // 3. Find the close button we just created and attach listener
             const closeBtn = popupNode.querySelector('.close-btn');
             if (closeBtn) {
                 closeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent map click
+                    e.stopPropagation(); 
                     if (this.congestionHelpPopup) {
                         this.congestionHelpPopup.remove();
                         this.congestionHelpPopup = null;
@@ -254,14 +282,13 @@ export class MapController {
                 });
             }
 
-            // 4. Create the popup using setDOMContent
             this.congestionHelpPopup = new maplibregl.Popup({ 
-                closeButton: false, // We created our own
+                closeButton: false, 
                 closeOnClick: false, 
                 className: 'congestion-info-popup', 
                 maxWidth: '300px' 
             })
-            .setLngLat([-72, 37]) // Fixed position in Atlantic
+            .setLngLat([-72, 37]) 
             .setDOMContent(popupNode) 
             .addTo(this.map);
         }
@@ -270,9 +297,16 @@ export class MapController {
     handleMapHover(e) {
         if (!e.features[0]) return;
         const zone = e.features[0].properties.Zone_Name;
+        
         let dataSource = null;
-        if (this.isAverageMode) { dataSource = this.averageDataCache; } 
-        else if (this.timeSeriesData.length > 0) { const step = this.timeSeriesData[this.currentIndex]; dataSource = step ? step.readings : null; }
+        if (this.isAverageMode) { 
+            dataSource = this.averageDataCache; 
+        } else if (this.timeSeriesData.length > 0) { 
+            // Safety check for current index
+            const step = this.timeSeriesData[this.currentIndex]; 
+            dataSource = step ? step.readings : null; 
+        }
+        
         const val = this.getZoneValue(zone, dataSource);
         this.hoverPopup.setLngLat(e.lngLat).setHTML(createZonePopupHTML(zone, this.activePriceType, val)).addTo(this.map);
     }
@@ -280,13 +314,19 @@ export class MapController {
     handleMapClick(e) {
         if (!e.features.length) return;
         const clickedZone = e.features[0].properties.Zone_Name;
+        
         if (e.originalEvent.shiftKey && this.activePriceType === 'congestion') {
             this.selectedZoneName = clickedZone;
             this.updateZoneBorders();
             this.renderCurrentView();
-            new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat).setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513; padding:2px;">New Reference: ${clickedZone}</div>`).addTo(this.map);
+            
+            new maplibregl.Popup({ closeButton: false })
+                .setLngLat(e.lngLat)
+                .setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513; padding:2px;">New Reference: ${clickedZone}</div>`)
+                .addTo(this.map);
             return;
         }
+        
         const sidebarItem = document.querySelector(`.zone-item[data-zone-name="${clickedZone}"]`);
         if (sidebarItem) sidebarItem.click();
     }
@@ -301,8 +341,42 @@ export class MapController {
         }
     }
     
-    setPlaybackSpeed(val) { this.playbackSpeed = 3100 - val; if (this.timer) { clearInterval(this.timer); this.startAnimation(); } }
-    startAnimation() { this.ui.playBtn.innerText = 'Pause'; this.timer = setInterval(() => { const nextIndex = this.currentIndex + 1; if (nextIndex >= this.timeSeriesData.length) { this.stopAnimation(); } else { this.renderTimeStep(nextIndex); } }, this.playbackSpeed); }
-    stopAnimation() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.ui.playBtn.innerText = 'Play'; }
-    togglePlay() { if (this.timer) { this.stopAnimation(); } else { if (this.currentIndex >= this.timeSeriesData.length - 1) this.renderTimeStep(0); this.startAnimation(); } }
+    setPlaybackSpeed(val) { 
+        this.playbackSpeed = 3100 - val; 
+        if (this.timer) { 
+            clearInterval(this.timer); 
+            this.startAnimation(); 
+        } 
+    }
+
+    startAnimation() { 
+        this.ui.playBtn.innerText = 'Pause'; 
+        this.timer = setInterval(() => { 
+            const nextIndex = this.currentIndex + 1; 
+            if (nextIndex >= this.timeSeriesData.length) { 
+                this.stopAnimation(); 
+            } else { 
+                this.renderTimeStep(nextIndex); 
+            } 
+        }, this.playbackSpeed); 
+    }
+
+    stopAnimation() { 
+        if (this.timer) { 
+            clearInterval(this.timer); 
+            this.timer = null; 
+        } 
+        this.ui.playBtn.innerText = 'Play'; 
+    }
+
+    togglePlay() { 
+        if (this.timer) { 
+            this.stopAnimation(); 
+        } else { 
+            if (this.currentIndex >= this.timeSeriesData.length - 1) {
+                this.renderTimeStep(0);
+            }
+            this.startAnimation(); 
+        } 
+    }
 }

@@ -17,10 +17,9 @@ The application is built on a modular architecture to ensure scalability and sep
 
 To transition this project from a static demo to a fully functional analytics tool, you must also configure the underlying data infrastructure (MySQL, PJM API, MapTiler) and ingest historical data.
 
-Please refer to the <span style="color: DodgerBlue; font-weight: bold;">System_Architecture_and_Deployment_Guide.pdf</span> located in the root directory.
+👉 Click the **System Architecture** link in the **Gettting Started** section for more information on Architecture & Deployment
 
-
-This document provides a comprehensive, step-by-step manual on:
+This guide provides a comprehensive, step-by-step manual on:
 *   **Acquiring Credentials:** How to set up PJM Data Miner, MapTiler, and AWS/Local MySQL accounts.
 *   **Data Ingestion:** Running the Python scripts in `src/data/` to populate the database with historical market prices and other data.
 

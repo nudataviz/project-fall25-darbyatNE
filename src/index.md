@@ -24,9 +24,10 @@ pager: false
           🚀 Getting Started <span style="font-size: 10px;">▼</span>
       </button>
       <!-- Dropdown Menu -->
-      <div id="header-help-menu" class="header-dropdown right-aligned">
+      <div id="header-help-menu" class="header-dropdown right-aligned" style="min-width: 175px;">
           <a href="#" id="btn-guide">📖 User Guide</a>
           <a href="#" id="btn-setup">⚙️ Setup Guide</a>
+          <a href="#" id="btn-arch">🏗️ System Architecture</a> <!-- NEW LINK -->
       </div>
     </div>
   </div>
@@ -95,7 +96,6 @@ pager: false
     <button onclick="document.getElementById('filter-modal').close()" class="close-btn">&times;</button>
   </div>
   <div style="padding: 20px; background: white;">
-    <!-- The picker.js UI will be injected here -->
     <div id="picker-mount-point"></div>
   </div>
 </dialog>
@@ -122,6 +122,17 @@ pager: false
   </div>
 </dialog>
 
+<!-- NEW: Architecture Modal -->
+<dialog id="arch-modal" style="border: none; border-radius: 8px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 90vw; width: 800px;">
+  <div class="modal-header">
+    <span>🏗️ System Architecture</span>
+    <button onclick="document.getElementById('arch-modal').close()" class="close-btn">&times;</button>
+  </div>
+  <div id="arch-content" style="padding: 30px; background: white; max-height: 80vh; overflow-y: auto; font-family: sans-serif; line-height: 1.6;">
+      <div style="text-align:center; color:#999;">Loading Architecture...</div>
+  </div>
+</dialog>
+
 <!-- 3. INITIALIZATION & CONTENT LOADING -->
 ```js
 import { initApp } from "./components/map.js";
@@ -136,25 +147,33 @@ function cleanMarkdown(text) {
   return text.replace(/^---[\s\S]*?---/, '').trim();
 }
 
-// 3. Load SETUP.md content
-FileAttachment("./SETUP.md").text()
-  .then(text => {
-    const html = marked.parse(cleanMarkdown(text));
-    document.getElementById('setup-content').innerHTML = html;
-  })
-  .catch(err => {
-    document.getElementById('setup-content').innerHTML = `<p style="color:red">Error loading Setup guide: ${err.message}</p>`;
-  });
+// 3. Load Content (Setup, Guide, Architecture)
+(async () => {
+  try {
+    const [setupText, guideText, archText] = await Promise.all([
+      FileAttachment("./SETUP.md").text(),
+      FileAttachment("./USER_GUIDE.md").text(),
+      FileAttachment("./ARCHITECTURE.md").text()
+    ]);
 
-// 4. Load USER_GUIDE.md content
-FileAttachment("./USER_GUIDE.md").text()
-  .then(text => {
-    const html = marked.parse(cleanMarkdown(text));
-    document.getElementById('guide-content').innerHTML = html;
-  })
-  .catch(err => {
-    document.getElementById('guide-content').innerHTML = `<p style="color:red">Error loading User Guide: ${err.message}</p>`;
+    document.getElementById('setup-content').innerHTML = marked.parse(cleanMarkdown(setupText));
+    document.getElementById('guide-content').innerHTML = marked.parse(cleanMarkdown(guideText));
+    document.getElementById('arch-content').innerHTML = marked.parse(cleanMarkdown(archText));
+    
+  } catch (err) {
+    console.error("Error loading docs:", err);
+  }
+})();
+
+// 4. Architecture Button logic
+const btnArch = document.getElementById('btn-arch');
+if (btnArch) {
+  btnArch.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('arch-modal').showModal();
+    document.getElementById('header-help-menu').style.display = 'none';
   });
+}
 
 // 5. Initialize Map App
 initApp();

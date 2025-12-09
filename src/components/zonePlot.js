@@ -146,13 +146,33 @@ export class ZonePlotManager {
     const plotData = [];
     const selectedZonesArray = Array.from(this.selectedZones);
 
+    // Map the UI "mode" to possible data keys in your JSON
+    const keyMap = {
+        'da': ['da', 'total_lmp_da'],
+        'rt': ['rt', 'total_lmp_rt'],
+        'net': ['net', 'net_load'],
+        'congestion': ['congestion_price_rt', 'cong', 'congestion'] // Check all these
+    };
+
+    // Get the list of keys to look for based on current mode
+    const potentialKeys = keyMap[this.currentPriceType] || [this.currentPriceType];
+
     timeSeriesData.forEach(timeStep => {
       const timestamp = new Date(timeStep.datetime);
       selectedZonesArray.forEach(zoneName => {
         if (timeStep.readings && timeStep.readings[zoneName]) {
           const zoneInfo = timeStep.readings[zoneName];
-          const price = zoneInfo[this.currentPriceType];
-          if (price !== null && price !== undefined) {
+          
+          // Find the first key that actually exists in the data
+          let price;
+          for (const k of potentialKeys) {
+              if (zoneInfo[k] !== undefined && zoneInfo[k] !== null) {
+                  price = zoneInfo[k];
+                  break;
+              }
+          }
+
+          if (price !== undefined) {
             plotData.push({
               timestamp: timestamp,
               zone: zoneName,
@@ -193,7 +213,7 @@ export class ZonePlotManager {
     const marginLeft = 70;
     const marginRight = 20;
     const marginTop = 40;
-    const marginBottom = 60; // Increased bottom margin for vertical labels
+    const marginBottom = 60; 
 
     const uniqueTimestamps = Array.from(new Set(data.map(d => d.timestamp.getTime())))
       .sort((a, b) => a - b)
@@ -284,26 +304,24 @@ export class ZonePlotManager {
         .attr("stroke", "white")
         .attr("stroke-width", 1);
     });
-    // label X axis with dates
+    
     const xAxisGroup = focus.append("g")
       .attr("class", "x-axis")
       .attr("transform", `translate(0,${focusHeight - marginBottom})`);
     
-    // Helper to render axis
     const renderXAxis = (group, scale) => {
       group.call(d3.axisBottom(scale)
-        .tickValues(scale.domain()) // ⚠️ Show EVERY point in the domain (no filtering)
+        .tickValues(scale.domain()) 
         .tickFormat(d => d3.timeFormat("%m/%d %H:%M")(new Date(d)))
       )
       .selectAll("text")
-        .style("font-size", "9px")  // Smaller font to fit more
-        .attr("transform", "rotate(-90)") // Vertical rotation
+        .style("font-size", "9px")  
+        .attr("transform", "rotate(-90)") 
         .attr("dx", "-0.8em")
         .attr("dy", "-0.5em")
         .style("text-anchor", "end");
     };
 
-    // Initial Axis Render
     renderXAxis(xAxisGroup, xScale);
 
     focus.append("g")
@@ -398,7 +416,6 @@ export class ZonePlotManager {
           .attr("stroke-width", 1);
       });
 
-      // ✅ Re-render Axis with ALL ticks for the new domain
       xAxisGroup.selectAll("*").remove();
       renderXAxis(xAxisGroup, xScale);
     }

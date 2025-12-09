@@ -11,8 +11,13 @@ import { API_BASE_URL } from "./components/config.js";
   let constraintList = [];
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/constraints/list`);
+    const response = await fetch(`${API_BASE_URL}/api/constraints/list`, {
+        headers: {
+            "ngrok-skip-browser-warning": "true"
+        }
+    });
     const data = await response.json();
+
 
     if (data.constraints && Array.isArray(data.constraints)) {
         constraintList = data.constraints;

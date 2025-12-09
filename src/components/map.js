@@ -38,7 +38,13 @@ export function initApp() {
     // 3. Map Load Logic
     map.on('load', async () => {
         try {
-            const shapes = await (await fetch(`${API_BASE_URL}/api/zones`)).json();
+            // --- FIX #1: Add Header to Zone Shapes Fetch ---
+            const shapesResponse = await fetch(`${API_BASE_URL}/api/zones`, {
+                headers: { "ngrok-skip-browser-warning": "true" }
+            });
+            const shapes = await shapesResponse.json();
+            // -----------------------------------------------
+
             shapes.features.forEach(f => f.properties.Zone_Name = f.properties.zone_name);
 
             const labelFeatures = shapes.features.flatMap(f => {
@@ -105,25 +111,24 @@ export function initApp() {
     document.getElementById('slider').oninput = (e) => { controller.stopAnimation(); controller.renderTimeStep(parseInt(e.target.value)); };
     document.getElementById('speed-slider').oninput = (e) => controller.setPlaybackSpeed(parseInt(e.target.value));
 
-    // ✅ FIXED: Filter Button opens Modal with Picker
     const filterBtn = document.getElementById('filter-btn');
     const modal = document.getElementById('filter-modal');
     const mountPoint = document.getElementById('picker-mount-point');
 
     if (filterBtn && modal && mountPoint) {
-        // Make this ASYNC to fetch data
         filterBtn.onclick = async () => {
             mountPoint.innerHTML = ''; 
             
-            // 1. Get Active Constraints (from current controller data)
             const activeConstraints = controller.constraintsData 
                 ? [...new Set(controller.constraintsData.map(c => c.monitored_facility || c.name))] 
                 : [];
 
-            // 2. Get All Constraints from API
             let allConstraints = [];
             try {
-                const response = await fetch(`${API_BASE_URL}/api/constraints/list`);
+                const response = await fetch(`${API_BASE_URL}/api/constraints/list`, {
+                    headers: { "ngrok-skip-browser-warning": "true" }
+                });
+                
                 if (response.ok) {
                     const data = await response.json();
                     allConstraints = data.constraints || [];
@@ -137,7 +142,7 @@ export function initApp() {
             }
 
             const picker = dateTimeRangePicker({
-                width: 520, // Fits inside 600px modal
+                width: 520, 
                 initialStartTime: filter.startTime,
                 initialEndTime: filter.endTime,
                 initialStartDate: filter.startDate,

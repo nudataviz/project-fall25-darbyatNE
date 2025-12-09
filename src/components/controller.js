@@ -73,9 +73,12 @@ export class MapController {
 
             const response = await fetch(`${API_BASE_URL}/api/lmp/range`, { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true' 
+                }, 
                 body: JSON.stringify(query),
-                signal: this.abortController.signal // Attach signal
+                signal: this.abortController.signal 
             });
             
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
@@ -106,7 +109,7 @@ export class MapController {
             this.renderAverageView();
 
         } catch (error) {
-            if (error.name === 'AbortError') return; // Ignore cancelled requests
+            if (error.name === 'AbortError') return;
             console.error("Fetch Error:", error);
             this.ui.timeDisplay.innerText = 'Data Error';
         }
@@ -120,9 +123,7 @@ export class MapController {
         }
     }
 
-    /**
-     * Helper to update Map Colors and Sidebar based on a data source
-     */
+    // Helper func to update Map Colors and Sidebar Columns
     updateMapAndSidebar(dataSource) {
         const currentScale = (this.activePriceType === 'net' || this.activePriceType === 'congestion') 
             ? NET_COLOR_SCALE 
@@ -149,7 +150,7 @@ export class MapController {
         }
         
         // Apply Map Colors
-        colorExpression.push('#cccccc'); // Default gray
+        colorExpression.push('#cccccc');
         if (this.map.getLayer('zoneFill')) {
             this.map.setPaintProperty('zoneFill', 'fill-color', colorExpression);
         }
@@ -172,8 +173,6 @@ export class MapController {
 
     renderTimeStep(index) {
         this.isAverageMode = false;
-        
-        // Safety Check
         if (!this.timeSeriesData || !this.timeSeriesData[index]) return;
 
         this.currentIndex = index;
@@ -302,7 +301,6 @@ export class MapController {
         if (this.isAverageMode) { 
             dataSource = this.averageDataCache; 
         } else if (this.timeSeriesData.length > 0) { 
-            // Safety check for current index
             const step = this.timeSeriesData[this.currentIndex]; 
             dataSource = step ? step.readings : null; 
         }

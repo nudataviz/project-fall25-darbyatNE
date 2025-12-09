@@ -1,6 +1,8 @@
 // src/config.js
 
-export const API_BASE_URL = "http://127.0.0.1:8000";
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+export const API_BASE_URL = "https://obvolutive-secondarily-lainey.ngrok-free.dev";
 
 export const ZONE_LABEL_OVERRIDES = {
     "AEP": [[40.9, -84.4], [39.03, -82.55]],

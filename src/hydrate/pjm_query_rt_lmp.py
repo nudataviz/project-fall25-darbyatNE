@@ -1,61 +1,62 @@
 import os
+import sys
 import requests
-import mysql.connector
-from mysql.connector import Error
+import pymysql
+from pymysql.cursors import DictCursor
 from dotenv import load_dotenv
 import time
-from datetime import date
+from datetime import date, timedelta, datetime
+from pathlib import Path
 
-load_dotenv()
+# 1. Load .env
+env_path = Path(__file__).resolve().parents[2] / '.env'
+load_dotenv(dotenv_path=env_path)
+
+# Try/Except allows this to run whether called directly or via module
+try:
+    from update_pjm_db import PNODE_IDS
+except ImportError:
+    # Fallback if running from root without package structure
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from update_pjm_db import PNODE_IDS
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
     "database": os.getenv("DB_NAME"),
-    "port": int(os.getenv("DB_PORT", 3306))
+    "port": int(os.getenv("DB_PORT", 3306)),
+    "cursorclass": DictCursor
 }
 
 PJM_API_KEY = os.getenv("PJM_API_KEY")
 PJM_API_ENDPOINT = 'https://api.pjm.com/api/v1/rt_hrl_lmps'
 DB_TABLE_NAME = 'pjm_rt_hrl_lmps'
 
-START_DATE = date(2025, 10, 28)
-END_DATE = date(2025, 10, 31)
-PNODE_IDS = [
-    51217, 51288, 4669664, 5413134, 31252687, 33092311, 33092313,
-    33092315, 34497125, 34497127, 34497151, 35010337, 40523629,
-    56958967, 81436855, 116013751, 116472927, 116472931, 116472933,
-    116472935, 116472937, 116472939, 116472941, 116472943,
-    116472945, 116472947, 116472949, 116472951, 116472953,
-    116472955, 116472957, 116472959, 126769999, 1069452904,
-    1124361945, 1127872598, 1258625176, 1269364670, 1269364671,
-    1269364672, 1269364674, 1288248099, 1304468347, 1441662202,
-    1709726615, 2156111904
-]
+# Default dates for Manual Runs
+START_DATE = date(2025, 11, 1)
+END_DATE = date(2025, 12, 6)
 
+def fetch_and_upsert_pjm_rt_lmp_data_pymysql():
+    """
+    Fetches PJM historical real-time LMP data, upserts to main table (NO STATUS),
+    and updates the pjm_hourly_status table (STATUS='v').
+    """
+    global START_DATE, END_DATE
 
-def fetch_and_upsert_pjm_rt_lmp_data_mysql():
-    """
-    Fetches PJM historical real-time LMP data for a list of PNode IDs
-    for a specified date range and upserts it into a MySQL database.
-    """
     if not all([PJM_API_KEY, DB_CONFIG["host"], DB_CONFIG["user"], DB_CONFIG["password"], DB_CONFIG["database"]]):
         print("Error: One or more required environment variables are missing.")
         return
 
     conn = None
     try:
-        print(f"Connecting to MySQL database at {DB_CONFIG['host']}...")
-        conn = mysql.connector.connect(**DB_CONFIG)
-        if not conn.is_connected():
-            print("Database connection failed.")
-            return
-        
+        print(f"Connecting to MySQL database: {DB_CONFIG['database']} at {DB_CONFIG['host']}...")
+        conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
         print("Database connection successful.")
 
         date_range_str = f"{START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}"
+        headers = {'Ocp-Apim-Subscription-Key': PJM_API_KEY}
         
         for pnode_id in PNODE_IDS:
             print(f"\n--- Processing PNode ID: {pnode_id} for Date Range: {date_range_str} ---")
@@ -67,7 +68,6 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
                 'datetime_beginning_ept': date_range_str,
                 'pnode_id': pnode_id
             }
-            headers = {'Ocp-Apim-Subscription-Key': PJM_API_KEY}
 
             try:
                 print(f"Querying PJM API for RT LMP data for PNode {pnode_id}...")
@@ -92,8 +92,9 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
                 print(f"Could not decode JSON response for PNode {pnode_id}.")
                 continue
 
-            # Prepare data for batch upsert
             rows_to_upsert = []
+            unique_hours_processed = set()
+
             for item in items:
                 rows_to_upsert.append((
                     item.get('datetime_beginning_ept'),
@@ -105,12 +106,12 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
                     item.get('congestion_price_rt'),
                     item.get('marginal_loss_price_rt') 
                 ))
-
+                unique_hours_processed.add(item.get('datetime_beginning_ept'))
 
             if not rows_to_upsert:
                 continue
 
-            # Batch upsert using executemany
+            # --- Upsert into Main Data Table ---
             sql_upsert = f"""
                 INSERT INTO {DB_TABLE_NAME} (
                     datetime_beginning_ept, pnode_id, pnode_name, type,
@@ -118,6 +119,8 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
+                    pnode_name = VALUES(pnode_name),
+                    type = VALUES(type),
                     system_energy_price_rt = VALUES(system_energy_price_rt),
                     total_lmp_rt = VALUES(total_lmp_rt),
                     congestion_price_rt = VALUES(congestion_price_rt),
@@ -127,22 +130,50 @@ def fetch_and_upsert_pjm_rt_lmp_data_mysql():
             try:
                 print(f"Preparing to upsert into table {DB_TABLE_NAME}...")
                 cursor.executemany(sql_upsert, rows_to_upsert)
+                
+                # --- Update Status Table ---
+                if unique_hours_processed:
+                    print(f"Updating status table for {len(unique_hours_processed)} unique hours...")
+                    
+                    sql_status_update = """
+                        INSERT INTO pjm_hourly_status (datetime_beginning_ept, status, updated_at)
+                        VALUES (%s, 'v', NOW())
+                        ON DUPLICATE KEY UPDATE 
+                            status = 'v',
+                            updated_at = NOW()
+                    """
+                    status_rows = [(h,) for h in unique_hours_processed]
+                    cursor.executemany(sql_status_update, status_rows)
+
                 conn.commit()
-                print(f"Successfully upserted {cursor.rowcount} rows for PNode {pnode_id}.")
-            except Error as e:
+                print(f"Successfully upserted data and updated status for PNode {pnode_id}.")
+
+            except pymysql.Error as e:
                 print(f"Database error for PNode {pnode_id}: {e}")
                 conn.rollback()
 
             print("Waiting 10 seconds before next PNode...")
             time.sleep(10)
 
-    except Error as e:
+    except pymysql.Error as e:
         print(f"A database error occurred: {e}")
     finally:
-        if conn and conn.is_connected():
+        if conn:
             cursor.close()
             conn.close()
             print("\nMySQL connection is closed.")
 
 if __name__ == '__main__':
-    fetch_and_upsert_pjm_rt_lmp_data_mysql()
+    if len(sys.argv) > 2:
+        try:
+            START_DATE = date.fromisoformat(sys.argv[1])
+            END_DATE = date.fromisoformat(sys.argv[2])
+            print(f"--- Dynamic Mode: Running from {START_DATE} to {END_DATE} ---")
+        except ValueError:
+            print("Error: Invalid date format. Use YYYY-MM-DD.")
+            sys.exit(1)
+    else:
+        print(f"--- Manual Mode: Using default dates {START_DATE} to {END_DATE} ---")
+    
+    # Run the function
+    fetch_and_upsert_pjm_rt_lmp_data_pymysql()

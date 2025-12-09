@@ -24,7 +24,7 @@ pager: false
           🚀 Getting Started <span style="font-size: 10px;">▼</span>
       </button>
       <!-- Dropdown Menu -->
-      <div id="header-help-menu" class="header-dropdown">
+      <div id="header-help-menu" class="header-dropdown right-aligned">
           <a href="#" id="btn-guide">📖 User Guide</a>
           <a href="#" id="btn-setup">⚙️ Setup Guide</a>
       </div>
@@ -52,6 +52,7 @@ pager: false
     <div id="map"></div>
     <div id="legend"></div>
     <div id="controls-container">
+      <!-- Opens Filter Modal -->
       <button id="filter-btn">⚙ Filter</button>
       <button id="avg-btn">Avg Price View</button>
       <div id="speed-box">
@@ -87,11 +88,23 @@ pager: false
 
 <!-- 2. MODALS -->
 
+<!-- Filter Configuration Modal (JS Mount Point) -->
+<dialog id="filter-modal">
+  <div class="modal-header">
+    <span>⚙️ Configure Data Query</span>
+    <button onclick="document.getElementById('filter-modal').close()" class="close-btn">&times;</button>
+  </div>
+  <div style="padding: 20px; background: white;">
+    <!-- The picker.js UI will be injected here -->
+    <div id="picker-mount-point"></div>
+  </div>
+</dialog>
+
 <!-- Setup Modal -->
 <dialog id="setup-modal" style="border: none; border-radius: 8px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 90vw; width: 800px;">
-  <div style="background: #333; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-weight: bold;">⚙️ Setup Guide</span>
-    <button onclick="document.getElementById('setup-modal').close()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+  <div class="modal-header">
+    <span>⚙️ Setup Guide</span>
+    <button onclick="document.getElementById('setup-modal').close()" class="close-btn">&times;</button>
   </div>
   <div id="setup-content" style="padding: 30px; background: white; max-height: 80vh; overflow-y: auto; font-family: sans-serif; line-height: 1.6;">
       <div style="text-align:center; color:#999;">Loading Setup Guide...</div>
@@ -100,9 +113,9 @@ pager: false
 
 <!-- Guide Modal -->
 <dialog id="guide-modal" style="border: none; border-radius: 8px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 90vw; width: 800px;">
-  <div style="background: #333; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-weight: bold;">📖 User Guide</span>
-    <button onclick="document.getElementById('guide-modal').close()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+  <div class="modal-header">
+    <span>📖 User Guide</span>
+    <button onclick="document.getElementById('guide-modal').close()" class="close-btn">&times;</button>
   </div>
   <div id="guide-content" style="padding: 30px; background: white; max-height: 80vh; overflow-y: auto; font-family: sans-serif; line-height: 1.6;">
       <div style="text-align:center; color:#999;">Loading User Guide...</div>
@@ -118,7 +131,7 @@ import { marked } from "npm:marked";
 // 1. Initialize UI (Buttons & Modals)
 initInfoModals();
 
-// 2. Helper to strip YAML frontmatter (the --- metadata at top of files)
+// 2. Helper to strip YAML frontmatter
 function cleanMarkdown(text) {
   return text.replace(/^---[\s\S]*?---/, '').trim();
 }
@@ -145,3 +158,12 @@ FileAttachment("./USER_GUIDE.md").text()
 
 // 5. Initialize Map App
 initApp();
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('header-help-menu');
+  const btn = event.target.closest('.header-btn');
+  if (menu && menu.style.display === 'block' && !btn && !menu.contains(event.target)) {
+    menu.style.display = 'none';
+  }
+});

@@ -2,6 +2,7 @@
 // Observable Framework configuration
 
 export default {
+  root: 'src',
   title: "PJM LMP Visualization",
   pager: false, 
   head: `

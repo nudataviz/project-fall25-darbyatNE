@@ -202,37 +202,70 @@ export class MapController {
     }
 
     updateZoneBorders() {
-    if (!this.map.getLayer('zoneLines')) return;
-    const targetZone = this.selectedZoneName || '';
-    const highlightColor = (this.activePriceType === 'congestion') ? '#FFFF00' : '#000000';
+        if (!this.map.getLayer('zoneLines')) return;
+        const targetZone = this.selectedZoneName || '';
+        const highlightColor = (this.activePriceType === 'congestion') ? '#fff022ff' : '#000000';
 
-    this.map.setPaintProperty('zoneLines', 'line-width', [
-        'case',
-        ['==', ['get', 'Zone_Name'], targetZone],
-        5,   // Selected zone border width
-        1.5  // Default zone border width
-    ]);
+        this.map.setPaintProperty('zoneLines', 'line-width', [
+            'case',
+            ['==', ['get', 'Zone_Name'], targetZone],
+            5,   // Selected zone border width
+            1.5  // Default zone border width
+        ]);
 
-    // Set Color:
-    this.map.setPaintProperty('zoneLines', 'line-color', [
-        'case',
-        ['==', ['get', 'Zone_Name'], targetZone],
-        highlightColor, // Yellow if congestion, Black otherwise
-        '#000000'       // Default color
-    ]);
+        // Set Color:
+        this.map.setPaintProperty('zoneLines', 'line-color', [
+            'case',
+            ['==', ['get', 'Zone_Name'], targetZone],
+            highlightColor, // Yellow if congestion, Black otherwise
+            '#000000'   
+        ]);
 
-    // if in Congestion mode)
-    if (this.congestionHelpPopup) { 
-        this.congestionHelpPopup.remove(); 
-        this.congestionHelpPopup = null; 
+        if (this.congestionHelpPopup) { 
+            this.congestionHelpPopup.remove(); 
+            this.congestionHelpPopup = null; 
+        }
+
+        if (this.activePriceType === 'congestion' && targetZone && targetZone !== 'PJM') {
+            // 1. Create a DOM element for the popup
+            const popupNode = document.createElement('div');
+            
+            // 2. Build the HTML structure manually to GUARANTEE the X button exists
+            // We use inline styles to ensure it looks like a box immediately
+            popupNode.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                    <strong style="font-size: 12px; color: #333;">Congestion Info</strong>
+                    <span class="close-btn" style="cursor: pointer; font-weight: bold; font-size: 18px; color: #666; line-height: 1;">&times;</span>
+                </div>
+                <div style="font-size: 12px; color: #444; line-height: 1.4;">
+                    ${CONGESTION_POPUP_HTML}
+                </div>
+            `;
+
+            // 3. Find the close button we just created and attach listener
+            const closeBtn = popupNode.querySelector('.close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent map click
+                    if (this.congestionHelpPopup) {
+                        this.congestionHelpPopup.remove();
+                        this.congestionHelpPopup = null;
+                    }
+                });
+            }
+
+            // 4. Create the popup using setDOMContent
+            this.congestionHelpPopup = new maplibregl.Popup({ 
+                closeButton: false, // We created our own
+                closeOnClick: false, 
+                className: 'congestion-info-popup', 
+                maxWidth: '300px' 
+            })
+            .setLngLat([-72, 37]) // Fixed position in Atlantic
+            .setDOMContent(popupNode) 
+            .addTo(this.map);
+        }
     }
-
-    if (this.activePriceType === 'congestion' && targetZone && targetZone !== 'PJM') {
-        this.congestionHelpPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'congestion-info-popup', maxWidth: '250px' })
-        .setLngLat([-72, 37]).setHTML(CONGESTION_POPUP_HTML).addTo(this.map);
-    }
-}
-
 
     handleMapHover(e) {
         if (!e.features[0]) return;
@@ -263,7 +296,6 @@ export class MapController {
         this.updateZoneBorders(); 
         this.renderCurrentView(); 
         
-        // Update plot manager with new price type
         if (window.zonePlotManager) {
             window.zonePlotManager.updatePriceType(type);
         }

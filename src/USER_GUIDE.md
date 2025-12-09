@@ -77,5 +77,3 @@ This section lists the **Top 10 Transmission Constraints** affecting the grid fo
 *   **The Constraint:** The specific transmission line or transformer that is "clogged."
 *   **Shadow Price:** This value indicates the **severity** of the bottleneck. It represents the marginal savings the system would realize if that specific line could carry just 1 more MW of power.
     *   *Higher Shadow Price = More Severe Congestion.*
-
-

@@ -2,11 +2,12 @@
 
 import maplibregl from "npm:maplibre-gl";
 import * as d3 from "npm:d3";
-import { filter } from "./filter.js";
+import { filter, saveFilter } from "./filter.js"; 
 import { API_BASE_URL, ZONE_LABEL_OVERRIDES, COLOR_SCALE, NET_COLOR_SCALE } from "./config.js";
 import { buildLegend, displayCurrentFilter } from "./ui.js";
 import { MapController } from "./controller.js";
 import { zonePlotManager } from "./zonePlot.js";
+import { dateTimeRangePicker } from "./picker.js"; 
 
 export function initApp() {
     // 1. Initialize Map
@@ -20,7 +21,6 @@ export function initApp() {
         attributionControl: false
     });
     
-    // Store map instance globally for plot manager access
     window.mapInstance = map;
     
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
@@ -33,13 +33,11 @@ export function initApp() {
         playBtn: document.getElementById('play-btn'),
     });
     
-    // Store controller globally for plot manager access
     window.mapController = controller;
 
     // 3. Map Load Logic
     map.on('load', async () => {
         try {
-            // Fetch & Draw Zones
             const shapes = await (await fetch(`${API_BASE_URL}/api/zones`)).json();
             shapes.features.forEach(f => f.properties.Zone_Name = f.properties.zone_name);
 
@@ -55,25 +53,19 @@ export function initApp() {
             map.addLayer({ id: 'zoneLines', type: 'line', source: 'zoneShapes', paint: { 'line-color': '#000', 'line-width': 1.5 } });
             map.addLayer({ id: 'zoneLabels', type: 'symbol', source: 'zoneLabelPoints', layout: { 'text-field': ['get', 'Zone_Name'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#000000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1 } });
 
-            // Setup Sidebar List
             const zones = [{ name: "PJM", center: [-82, 38.6] }, ...shapes.features.map(f => ({ name: f.properties.Zone_Name, center: d3.geoCentroid(f) })).sort((a, b) => a.name.localeCompare(b.name))];
             document.getElementById('zone-list').innerHTML = zones.map(z => `<div class="zone-item" data-zone-name="${z.name}"><span class="zone-name">${z.name}</span><span class="zone-price"></span></div>`).join('');
 
-            // Initialize Zone Plot Manager after zone list is created
             zonePlotManager.initialize(map, filter);
             window.zonePlotManager = zonePlotManager;
 
-            // Map Interactions
             map.on('mousemove', 'zoneFill', (e) => controller.handleMapHover(e));
             map.on('mouseleave', 'zoneFill', () => controller.hoverPopup.remove());
             map.on('click', 'zoneFill', (e) => controller.handleMapClick(e));
 
-            // Sidebar Interactions
             document.getElementById('zone-list').addEventListener('click', (e) => {
                 const item = e.target.closest('.zone-item');
                 if (!item) return;
-                
-                // Don't trigger zone selection if clicking checkbox
                 if (e.target.classList.contains('zone-checkbox')) return;
                 
                 document.querySelectorAll('.zone-item').forEach(i => i.classList.remove('selected'));
@@ -88,7 +80,6 @@ export function initApp() {
                 }
             });
 
-            // Initial Data Load
             buildLegend(COLOR_SCALE);
             document.getElementById('legend').style.display = 'block';
 
@@ -113,5 +104,61 @@ export function initApp() {
     document.getElementById('avg-btn').onclick = () => { controller.stopAnimation(); controller.renderAverageView(); };
     document.getElementById('slider').oninput = (e) => { controller.stopAnimation(); controller.renderTimeStep(parseInt(e.target.value)); };
     document.getElementById('speed-slider').oninput = (e) => controller.setPlaybackSpeed(parseInt(e.target.value));
-    document.getElementById('filter-btn').onclick = () => window.location.href = '/picker';
+
+    // ✅ FIXED: Filter Button opens Modal with Picker
+    const filterBtn = document.getElementById('filter-btn');
+    const modal = document.getElementById('filter-modal');
+    const mountPoint = document.getElementById('picker-mount-point');
+
+    if (filterBtn && modal && mountPoint) {
+        // Make this ASYNC to fetch data
+        filterBtn.onclick = async () => {
+            mountPoint.innerHTML = ''; 
+            
+            // 1. Get Active Constraints (from current controller data)
+            const activeConstraints = controller.constraintsData 
+                ? [...new Set(controller.constraintsData.map(c => c.monitored_facility || c.name))] 
+                : [];
+
+            // 2. Get All Constraints from API
+            let allConstraints = [];
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/constraints/list`);
+                if (response.ok) {
+                    const data = await response.json();
+                    allConstraints = data.constraints || [];
+                } else {
+                    console.warn("Failed to fetch all constraints list, falling back to active constraints");
+                    allConstraints = activeConstraints;
+                }
+            } catch (error) {
+                console.error("Error fetching all constraints:", error);
+                allConstraints = activeConstraints;
+            }
+
+            const picker = dateTimeRangePicker({
+                width: 520, // Fits inside 600px modal
+                initialStartTime: filter.startTime,
+                initialEndTime: filter.endTime,
+                initialStartDate: filter.startDate,
+                initialEndDate: filter.endDate,
+                initialDaysOfWeek: filter.daysOfWeek,
+                initialConstraint: filter.selectedConstraint,
+                activeConstraints: activeConstraints,
+                allConstraints: allConstraints
+            });
+
+            picker.addEventListener('apply', (e) => {
+                const newFilter = e.detail;
+                Object.assign(filter, newFilter);
+                saveFilter(filter);
+                displayCurrentFilter(filter);
+                controller.loadData(filter);
+                modal.close();
+            });
+
+            mountPoint.appendChild(picker);
+            modal.showModal();
+        };
+    }
 }

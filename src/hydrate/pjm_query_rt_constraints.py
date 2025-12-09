@@ -1,18 +1,26 @@
 import os
 import requests
-import mysql.connector
-from mysql.connector import Error
+import pymysql
+from pymysql.cursors import DictCursor
 from dotenv import load_dotenv
 from datetime import date, timedelta
 import time
+import sys
 
 # --- Configuration & Secrets ---
 load_dotenv()
+
+# Standardized DB Config
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME"),
+    "port": int(os.getenv("DB_PORT", 3306)),
+    "cursorclass": DictCursor
+}
+
 PJM_API_KEY = os.getenv("PJM_API_KEY")
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
 
 # --- API and Table Configuration ---
 API_URL = "https://api.pjm.com/api/v1/rt_marginal_value" 
@@ -27,7 +35,7 @@ def fetch_pjm_data(chunk_start_date: date, chunk_end_date: date, api_key: str) -
     
     params = {
         'startRow': 1,
-        'rowCount': 50000, # Should be large enough for most chunk sizes
+        'rowCount': 50000, 
         'datetime_beginning_ept': f'{start_str}T00:00:00',
         'datetime_ending_ept': f'{end_str}T23:59:59',
         'format': 'json'
@@ -49,6 +57,8 @@ def save_data_to_mysql(conn, items: list) -> int:
         return 0
         
     cursor = conn.cursor()
+    
+    # PyMySQL uses %s for placeholders
     sql = f'''
         INSERT IGNORE INTO {TABLE_NAME} (
             datetime_beginning_ept, monitored_facility, contingency_facility,
@@ -64,22 +74,35 @@ def save_data_to_mysql(conn, items: list) -> int:
         ) for item in items
     ]
         
-    cursor.executemany(sql, rows_to_insert)
-    conn.commit()
-    
-    return cursor.rowcount
+    try:
+        cursor.executemany(sql, rows_to_insert)
+        conn.commit()
+        return cursor.rowcount
+    except pymysql.Error as e:
+        print(f"Error inserting rows: {e}")
+        conn.rollback()
+        return 0
 
 # --- Main Execution Block ---
 if __name__ == "__main__":
     
-    if not all([PJM_API_KEY, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
+    if not all([PJM_API_KEY, DB_CONFIG["host"], DB_CONFIG["user"], DB_CONFIG["password"], DB_CONFIG["database"]]):
         print("--- CONFIGURATION ERROR ---")
         print("One or more environment variables are missing. Please check your .env file.")
     else:
-        # --- MODIFIED: Define the date range and chunk size ---
-        START_DATE_STR = "2025-10-19"
-        END_DATE_STR = "2025-10-19"
-        CHUNK_SIZE_DAYS = 1 
+        # --- DYNAMIC DATE LOGIC ---
+        # This allows the Master Script to pass in dates via command line
+        if len(sys.argv) > 2:
+            START_DATE_STR = sys.argv[1]
+            END_DATE_STR = sys.argv[2]
+            print(f"--- Dynamic Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
+        else:
+            # Manual Defaults if running script directly
+            START_DATE_STR = "2025-11-21"
+            END_DATE_STR = "2025-11-21"
+            print(f"--- Manual Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
+
+        CHUNK_SIZE_DAYS = 1
         
         start_date = date.fromisoformat(START_DATE_STR)
         end_date = date.fromisoformat(END_DATE_STR)
@@ -89,10 +112,9 @@ if __name__ == "__main__":
         
         conn = None
         try:
-            conn = mysql.connector.connect(
-                host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME
-            )
-            print(f"Successfully connected to MySQL database '{DB_NAME}'.")
+            print(f"Connecting to MySQL database: {DB_CONFIG['database']} at {DB_CONFIG['host']}...")
+            conn = pymysql.connect(**DB_CONFIG)
+            print(f"Successfully connected to MySQL database.")
             
             # Loop in chunks to reduce API calls
             chunk_start_date = start_date
@@ -112,19 +134,18 @@ if __name__ == "__main__":
                 else:
                     print(f"-> No data returned from API for this chunk.")
                 
-                # --- MODIFIED: Move to the next chunk using the variable ---
+                # Move to the next chunk
                 chunk_start_date += timedelta(days=CHUNK_SIZE_DAYS)
                 
                 # Courtesy delay to respect API rate limits
-                # Only sleep if we are not past the end date
                 if chunk_start_date <= end_date:
                     print("Waiting for 9 seconds before next API call...")
                     time.sleep(9)
                 
-        except Error as e:
+        except pymysql.Error as e:
             print(f"--- MySQL Database Error ---: {e}")
         finally:
-            if conn and conn.is_connected():
+            if conn:
                 conn.close()
                 print("\nMySQL connection closed.")
 

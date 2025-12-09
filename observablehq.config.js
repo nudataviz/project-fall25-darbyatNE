@@ -2,7 +2,7 @@
 // Observable Framework configuration
 
 export default {
-  root: 'src',
+  root: "/project-fall25-darbyatNE",
   title: "PJM LMP Visualization",
   pager: false, 
   head: `

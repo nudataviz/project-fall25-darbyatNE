@@ -64,44 +64,87 @@ export function initApp() {
 
             map.on('mousemove', 'zoneFill', (e) => controller.handleMapHover(e));
             map.on('mouseleave', 'zoneFill', () => controller.hoverPopup.remove());
-            map.on('click', 'zoneFill', (e) => controller.handleMapClick(e));
+
+            let hasClickedCongestion = false;
+
+            // Reset flag when switching modes
+            document.querySelectorAll('input[name="price-type"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.value === 'congestion') {
+                        hasClickedCongestion = false; 
+                    }
+                });
+            });
+
+            map.on('click', 'zoneFill', (e) => {
+                const currentMode = document.querySelector('input[name="price-type"]:checked').value;
+                let allowPopup = true;
+
+                if (currentMode === 'congestion') {
+                    if (hasClickedCongestion) {
+                        // 2nd+ click: Allow selection, but BLOCK popup
+                        allowPopup = false; 
+                    } else {
+                        // 1st click: Allow popup
+                        hasClickedCongestion = true;
+                    }
+                }
+
+                // Pass the 'allowPopup' flag 
+                controller.handleMapClick(e, allowPopup);
+            });
 
             document.getElementById('zone-list').addEventListener('click', (e) => {
                 const item = e.target.closest('.zone-item');
                 if (!item) return;
-                if (e.target.classList.contains('zone-checkbox')) return;
-                
+
+                // 1. Highlight the row
                 document.querySelectorAll('.zone-item').forEach(i => i.classList.remove('selected'));
                 item.classList.add('selected');
 
                 const zData = zones.find(z => z.name === item.dataset.zoneName);
+                
                 if (zData) {
+                    // Handle PJM (Reset)
                     if (zData.name === 'PJM') {
-                        // Reset to Home View 
                         map.flyTo({ 
                             center: zData.center, 
-                            zoom: 5.5, 
-                            pitch: 12, 
-                            bearing: 0,     
-                            essential: true
+                            zoom: 5.5, pitch: 12, bearing: 0, essential: true
                         });
                         controller.selectedZoneName = null;
-                    } else {
-                        // Go to Zone
-                        map.flyTo({ 
-                            center: zData.center, 
-                            zoom: 6.1, 
-                            pitch: 20, 
-                            bearing: map.getBearing()
-                        });
+                    } 
+                    else {
+                        
+                        // Case A: The CHECKBOX was clicked
+                        if (e.target.classList.contains('zone-checkbox')) {
+                            // Fly to offset center (so zone is at top of screen)
+                            const offsetCenter = [zData.center[0], zData.center[1] - 5];
+                            
+                            map.flyTo({ 
+                                center: offsetCenter, 
+                                zoom: 4.8,
+                                pitch: 20, 
+                                bearing: map.getBearing()
+                            });
+                        } 
+                        // Case B: The Name Text or Map Shape was clicked
+                        else {
+                            // Fly to normal center
+                            map.flyTo({ 
+                                center: zData.center, 
+                                zoom: 6.1, pitch: 20, bearing: map.getBearing()
+                            });
+                        }
+                        
                         controller.selectedZoneName = zData.name;
                     }
 
+                    // Update UI
                     controller.updateZoneBorders();
                     controller.renderCurrentView();
                 }
             });
-            // ---------------------------------
+
 
             buildLegend(COLOR_SCALE);
             document.getElementById('legend').style.display = 'block';

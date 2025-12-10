@@ -309,24 +309,26 @@ export class MapController {
         this.hoverPopup.setLngLat(e.lngLat).setHTML(createZonePopupHTML(zone, this.activePriceType, val)).addTo(this.map);
     }
 
-    handleMapClick(e) {
+    handleMapClick(e, allowPopup = true) {
         if (!e.features.length) return;
         const clickedZone = e.features[0].properties.Zone_Name;
         
-        if (e.originalEvent.shiftKey && this.activePriceType === 'congestion') {
-            this.selectedZoneName = clickedZone;
-            this.updateZoneBorders();
-            this.renderCurrentView();
-            
-            new maplibregl.Popup({ closeButton: false })
-                .setLngLat(e.lngLat)
-                .setHTML(`<div style="font-size:11px; font-weight:bold; color:#8B4513; padding:2px;">New Reference: ${clickedZone}</div>`)
-                .addTo(this.map);
-            return;
-        }
-        
+        // 1. Trigger Sidebar Logic (Updates Charts, Borders, Zoom)
         const sidebarItem = document.querySelector(`.zone-item[data-zone-name="${clickedZone}"]`);
         if (sidebarItem) sidebarItem.click();
+
+        // 2. Show Popup (Only if allowed)
+        if (allowPopup) {
+            const props = e.features[0].properties;
+            const content = `
+                <div style="text-align:center;">
+                    <strong>${props.Zone_Name}</strong>
+                </div>`;
+            new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(content) 
+                .addTo(this.map);
+        }
     }
 
     setPriceType(type) { 

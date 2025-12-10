@@ -60,7 +60,7 @@ pager: false
         <label>Speed</label>
         <input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000">
       </div>
-      <button id="play-btn">Play</button>
+      <button id="play-btn">Animate Hours</button>
       <input type="range" id="slider" min="0" max="1" value="0" style="flex-grow: 1; margin: 0 10px;">
       <div id="time-display">Ready</div>
     </div>

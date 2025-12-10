@@ -364,7 +364,7 @@ export class MapController {
             clearInterval(this.timer); 
             this.timer = null; 
         } 
-        this.ui.playBtn.innerText = 'Play'; 
+        this.ui.playBtn.innerText = 'Animate Hours'; 
     }
 
     togglePlay() { 

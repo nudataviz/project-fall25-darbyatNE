@@ -19,7 +19,10 @@ Access this page by clicking the **Filter** button on the main map.
 
 1. **Define Search Criteria:**
    * **Date Range** (*Required*): Select the historical period you want to analyze.
-   * **Additional Filters** (*Optional*): Narrow your search by specific **Days of the Week**, **Hours of the Day**, or a specific **RT Transmission Constraint**.
+   * **Additional Filters** (*Optional*): Narrow your search by:
+        * **Days of the Week**
+        * **Hours of the Day**
+        * **RT Transmission Constraint**.
 
 2. **Save Filter:** (*Optional*): Click this button to store your current configuration, allowing you to quickly recall it for future queries.
 
@@ -38,7 +41,7 @@ When the **Fetch Operation** is complete, the **Actual Hours**—the specific co
 Once the data loads, the map defaults to the **Average Price** view. Use the control bar at the bottom to navigate the data.
 
 *   **📊 Average Price Button (Default):** This is the starting view. It aggregates *all* queried hours into a single static heatmap, showing you the "average" congestion pattern for your selected criteria.
-*   **▶️ Play / ⏸️ Pause:** Starts the animation to cycle through the hours sequentially. Press pause to freeze the map on a specific timestamp for deeper analysis.
+*   **▶️ Animate Hours / ⏸️ Pause:** Starts the animation to cycle through the hours sequentially. Press pause to freeze the map on a specific timestamp for deeper analysis.
 *   **⏱️ Hourly Slider:** Manually drag the scrubber to jump to a specific hour of the day.
 *   **🚀 Speed Slider:** Adjusts how fast the animation plays (slow for analysis, fast for trends).
 

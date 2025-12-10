@@ -151,7 +151,7 @@ export class ZonePlotManager {
         'da': ['da', 'total_lmp_da'],
         'rt': ['rt', 'total_lmp_rt'],
         'net': ['net', 'net_load'],
-        'congestion': ['congestion_price_rt', 'cong', 'congestion'] // Check all these
+        'congestion': ['rt', 'total_lmp_rt']  
     };
 
     // Get the list of keys to look for based on current mode
@@ -422,7 +422,7 @@ export class ZonePlotManager {
 
     const legendContainer = svg.append("foreignObject")
       .attr("x", containerWidth - 150)
-      .attr("y", marginTop)
+      .attr("y", 0)
       .attr("width", 140)
       .attr("height", 400);
 

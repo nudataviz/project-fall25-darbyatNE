@@ -11,9 +11,9 @@ export function initApp() {
     // 1. Initialize Map
     const map = new maplibregl.Map({
         container: "map",
-        zoom: 5.3,
+        zoom: 5.5,
         center: [-82, 38.6],
-        pitch: 10,
+        pitch: 12,
         hash: true,
         style: 'https://api.maptiler.com/maps/streets/style.json?key=eDHUbUTyNqfZvtDLiUCT',
         attributionControl: false
@@ -52,7 +52,9 @@ export function initApp() {
             map.addSource('zoneLabelPoints', { type: 'geojson', data: { type: 'FeatureCollection', features: labelFeatures } });
             map.addLayer({ id: 'zoneFill', type: 'fill', source: 'zoneShapes', paint: { "fill-color": '#cccccc', "fill-opacity": 0.7 } });
             map.addLayer({ id: 'zoneLines', type: 'line', source: 'zoneShapes', paint: { 'line-color': '#000', 'line-width': 1.5 } });
-            map.addLayer({ id: 'zoneLabels', type: 'symbol', source: 'zoneLabelPoints', layout: { 'text-field': ['get', 'Zone_Name'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#000000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1 } });
+            map.addLayer({ id: 'zoneLabels', type: 'symbol', source: 'zoneLabelPoints', 
+                layout: { 'text-field': ['get', 'Zone_Name'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, 
+                paint: { 'text-color': '#000000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1 } });
 
             const zones = [{ name: "PJM", center: [-82, 38.6] }, ...shapes.features.map(f => ({ name: f.properties.Zone_Name, center: d3.geoCentroid(f) })).sort((a, b) => a.name.localeCompare(b.name))];
             document.getElementById('zone-list').innerHTML = zones.map(z => `<div class="zone-item" data-zone-name="${z.name}"><span class="zone-name">${z.name}</span><span class="zone-price"></span></div>`).join('');
@@ -78,8 +80,8 @@ export function initApp() {
                         // Reset to Home View 
                         map.flyTo({ 
                             center: zData.center, 
-                            zoom: 5.3, 
-                            pitch: 10, 
+                            zoom: 5.5, 
+                            pitch: 12, 
                             bearing: 0,     
                             essential: true
                         });
@@ -88,7 +90,7 @@ export function initApp() {
                         // Go to Zone
                         map.flyTo({ 
                             center: zData.center, 
-                            zoom: 6, 
+                            zoom: 6.1, 
                             pitch: 20, 
                             bearing: map.getBearing()
                         });

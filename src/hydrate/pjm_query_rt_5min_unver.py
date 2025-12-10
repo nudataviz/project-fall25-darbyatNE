@@ -5,7 +5,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 from dotenv import load_dotenv
 import time
-from datetime import date, timedelta, datetime
+from datetime import datetime, timedelta
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -15,8 +15,6 @@ from update_pjm_db import PNODE_IDS
 
 load_dotenv()
 
-
-# --- Configuration ---
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "user": os.getenv("DB_USER"),
@@ -29,107 +27,81 @@ DB_CONFIG = {
 PJM_API_KEY = os.getenv("PJM_API_KEY")
 PJM_API_ENDPOINT = 'https://api.pjm.com/api/v1/rt_unverified_fivemin_lmps'
 DB_TABLE_NAME = 'pjm_rt_unverified_fivemin_lmps'
+TARGET_PNODES = set(PNODE_IDS)
 
-def fetch_and_upsert_pjm_data_efficiently(start_date_obj, end_date_obj):
+def fetch_and_upsert_batch(start_dt, end_dt):
     """
-    Fetches PJM data by making one API call per PNode for the entire date range.
+    Accepts datetime objects (e.g., 2023-10-27 08:00:00)
     """
-    if not all([PJM_API_KEY, DB_CONFIG["host"], DB_CONFIG["user"], DB_CONFIG["password"], DB_CONFIG["database"]]):
-        print("Error: One or more required environment variables are missing.")
+    if not all([PJM_API_KEY, DB_CONFIG["host"]]):
+        print("Error: Missing environment variables.")
         return
 
-    conn = None
+    time_range_string = f"{start_dt.strftime('%Y-%m-%d %H:%M:%S')} to {end_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+    print(f"   ⬇️ Fetching Raw: {time_range_string}")
+
+    params = {
+        'rowCount': 50000, 
+        'order': 'Asc',
+        'startRow': 1,
+        'datetime_beginning_ept': time_range_string,
+        'fields': 'datetime_beginning_ept,pnode_id,pnode_name,total_lmp_rt,congestion_price_rt,marginal_loss_price_rt'
+    }
+    
+    headers = {'Ocp-Apim-Subscription-Key': PJM_API_KEY}
+
     try:
-        print(f"Connecting to MySQL database: {DB_CONFIG['database']} at {DB_CONFIG['host']}...")
-        conn = pymysql.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        print("Database connection successful.")
-
-        headers = {'Ocp-Apim-Subscription-Key': PJM_API_KEY}
-
-        # Convert date objects to datetime strings for the API
-        start_dt = datetime.combine(start_date_obj, datetime.min.time())
-        # For end date, we want the end of that day (23:59:59)
-        end_dt = datetime.combine(end_date_obj, datetime.max.time())
+        response = requests.get(PJM_API_ENDPOINT, headers=headers, params=params, timeout=60)
+        response.raise_for_status()
         
-        time_range_string = f"{start_dt.strftime('%Y-%m-%d %H:%M:%S')} to {end_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+        all_items = response.json().get('items', [])
+        filtered_items = [item for item in all_items if item.get('pnode_id') in TARGET_PNODES]
         
-        print(f"Fetching data for all PNodes from {time_range_string}")
+        if filtered_items:
+            save_to_db(filtered_items)
+            return len(filtered_items)
+        else:
+            print("      ⚠️ No data found for this window.")
+            return 0
 
-        # Uses the imported PNODE_IDS list
-        for pnode_id in PNODE_IDS:
-            print(f"\n--- Processing PNode ID: {pnode_id} ---")
-            
-            params = {
-                'rowCount': 50000,
-                'order': 'Asc',
-                'startRow': 1,
-                'datetime_beginning_ept': time_range_string,
-                'pnode_id': pnode_id,
-                'fields': 'datetime_beginning_ept,pnode_id,pnode_name,total_lmp_rt,congestion_price_rt,marginal_loss_price_rt'
-            }
+    except Exception as e:
+        print(f"      ❌ Error: {e}")
+        return 0
 
-            try:
-                print(f"Querying API for PNode {pnode_id}...")
-                response = requests.get(PJM_API_ENDPOINT, headers=headers, params=params)
-                response.raise_for_status()
-                
-                items = response.json().get('items', [])
-                
-                if items:
-                    print(f"Successfully fetched {len(items)} records.")
-                    rows_to_upsert = [
-                        (
-                            item.get('datetime_beginning_ept'), item.get('pnode_id'),
-                            item.get('pnode_name'), item.get('total_lmp_rt'),
-                            item.get('congestion_price_rt'), item.get('marginal_loss_price_rt')
-                        ) for item in items
-                    ]
-                    
-                    sql_upsert = f"""
-                        INSERT INTO {DB_TABLE_NAME} (
-                            datetime_beginning_ept, pnode_id, pnode_name, total_lmp_rt, congestion_price_rt, marginal_loss_price_rt
-                        ) VALUES (%s, %s, %s, %s, %s, %s)
-                        ON DUPLICATE KEY UPDATE
-                            pnode_name = VALUES(pnode_name),
-                            total_lmp_rt = VALUES(total_lmp_rt),
-                            congestion_price_rt = VALUES(congestion_price_rt),
-                            marginal_loss_price_rt = VALUES(marginal_loss_price_rt)
-                    """
-                    cursor.executemany(sql_upsert, rows_to_upsert)
-                    conn.commit()
-                else:
-                    print(f"No data returned for PNode {pnode_id}.")
-
-            except Exception as e:
-                print(f"Error for PNode {pnode_id}: {e}")
-                if conn: conn.rollback()
-
-            print("Waiting 5 seconds...")
-            time.sleep(5)
-
-    except pymysql.Error as e:
-        print(f"A database connection error occurred: {e}")
+def save_to_db(items):
+    conn = pymysql.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    try:
+        rows_to_upsert = [
+            (
+                item.get('datetime_beginning_ept'), item.get('pnode_id'),
+                item.get('pnode_name'), item.get('total_lmp_rt'),
+                item.get('congestion_price_rt'), item.get('marginal_loss_price_rt')
+            ) for item in items
+        ]
+        
+        sql_upsert = f"""
+            INSERT INTO {DB_TABLE_NAME} (
+                datetime_beginning_ept, pnode_id, pnode_name, total_lmp_rt, congestion_price_rt, marginal_loss_price_rt
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                total_lmp_rt = VALUES(total_lmp_rt),
+                congestion_price_rt = VALUES(congestion_price_rt),
+                marginal_loss_price_rt = VALUES(marginal_loss_price_rt)
+        """
+        cursor.executemany(sql_upsert, rows_to_upsert)
+        conn.commit()
     finally:
-        if conn:
-            cursor.close()
-            conn.close()
-            print("\nMySQL connection is closed.")
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
-    # --- DYNAMIC DATE LOGIC ---
+    end_d = datetime.now()
+    start_d = datetime(end_d.year, end_d.month, end_d.day) 
+    
     if len(sys.argv) > 2:
-        try:
-            start_d = date.fromisoformat(sys.argv[1])
-            end_d = date.fromisoformat(sys.argv[2])
-            print(f"--- Dynamic Mode: {start_d} to {end_d} ---")
-        except ValueError:
-            print("Error: Invalid date format. Use YYYY-MM-DD.")
-            sys.exit(1)
-    else:
-        # Manual Default: Last 4 days
-        end_d = date.today()
-        start_d = end_d - timedelta(days=4)
-        print(f"--- Manual Mode: {start_d} to {end_d} ---")
+        start_d = datetime.fromisoformat(sys.argv[1])
+        end_d = datetime.fromisoformat(sys.argv[2])
 
-    fetch_and_upsert_pjm_data_efficiently(start_d, end_d)
+    fetch_and_upsert_batch(start_d, end_d)

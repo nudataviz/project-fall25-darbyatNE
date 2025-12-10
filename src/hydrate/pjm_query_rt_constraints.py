@@ -1,16 +1,14 @@
 import os
+import sys
+import time
 import requests
 import pymysql
 from pymysql.cursors import DictCursor
 from dotenv import load_dotenv
-from datetime import date, timedelta
-import time
-import sys
+from datetime import date, datetime, timedelta
 
-# --- Configuration & Secrets ---
 load_dotenv()
 
-# Standardized DB Config
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "user": os.getenv("DB_USER"),
@@ -21,34 +19,35 @@ DB_CONFIG = {
 }
 
 PJM_API_KEY = os.getenv("PJM_API_KEY")
-
-# --- API and Table Configuration ---
 API_URL = "https://api.pjm.com/api/v1/rt_marginal_value" 
 TABLE_NAME = "pjm_binding_constraints"
 
-def fetch_pjm_data(chunk_start_date: date, chunk_end_date: date, api_key: str) -> list:
-    """Fetches all records for a specific date range (chunk) from the PJM API."""
+def fetch_pjm_data(start_dt: datetime, end_dt: datetime, api_key: str) -> list:
+    """
+    Fetches records for a specific DATETIME range.
+    """
     headers = {'Ocp-Apim-Subscription-Key': api_key}
-    
-    start_str = chunk_start_date.strftime("%Y-%m-%d")
-    end_str = chunk_end_date.strftime("%Y-%m-%d")
+    start_str = start_dt.strftime("%Y-%m-%dT%H:%M:%S")
+    end_str = end_dt.strftime("%Y-%m-%dT%H:%M:%S")
     
     params = {
         'startRow': 1,
         'rowCount': 50000, 
-        'datetime_beginning_ept': f'{start_str}T00:00:00',
-        'datetime_ending_ept': f'{end_str}T23:59:59',
+        'datetime_beginning_ept': start_str,
+        'datetime_ending_ept': end_str,
         'format': 'json'
     }
-    
-    print(f"Fetching PJM data for {start_str} to {end_str}...")
+
+    if (end_dt - start_dt) > timedelta(hours=1):
+        print(f"      ⛓️  Fetching PJM Constraints: {start_str} to {end_str}...")
+
     try:
-        response = requests.get(API_URL, headers=headers, params=params, timeout=90)
+        response = requests.get(API_URL, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         items = response.json().get('items', [])
         return items
     except requests.exceptions.RequestException as e:
-        print(f"--- Error fetching API data for chunk {start_str} to {end_str} ---: {e}")
+        print(f"      ⚠️ API Error ({start_str}): {e}")
         return []
 
 def save_data_to_mysql(conn, items: list) -> int:
@@ -58,7 +57,6 @@ def save_data_to_mysql(conn, items: list) -> int:
         
     cursor = conn.cursor()
     
-    # PyMySQL uses %s for placeholders
     sql = f'''
         INSERT IGNORE INTO {TABLE_NAME} (
             datetime_beginning_ept, monitored_facility, contingency_facility,
@@ -79,77 +77,74 @@ def save_data_to_mysql(conn, items: list) -> int:
         conn.commit()
         return cursor.rowcount
     except pymysql.Error as e:
-        print(f"Error inserting rows: {e}")
+        print(f"      ❌ DB Insert Error: {e}")
         conn.rollback()
         return 0
 
-# --- Main Execution Block ---
+# --- Watchdog Entry---
+
+def fetch_constraints_batch(start_dt: datetime, end_dt: datetime):
+    """
+    Called by db_watchdog.py to sync a specific window (e.g., 1 hour).
+    """
+    conn = None
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
+        items = fetch_pjm_data(start_dt, end_dt, PJM_API_KEY)
+        if items:
+            count = save_data_to_mysql(conn, items)
+            print(f"      ⛓️  Constraints: {len(items)} fetched, {count} inserted.")
+        else:
+            pass
+    except Exception as e:
+        print(f"      ⚠️ Constraint Batch Failed: {e}")
+        raise e
+    finally:
+        if conn: conn.close()
+
+# --- Backfill Entry ---
+
 if __name__ == "__main__":
     
-    if not all([PJM_API_KEY, DB_CONFIG["host"], DB_CONFIG["user"], DB_CONFIG["password"], DB_CONFIG["database"]]):
-        print("--- CONFIGURATION ERROR ---")
-        print("One or more environment variables are missing. Please check your .env file.")
+    if not all([PJM_API_KEY, DB_CONFIG["host"]]):
+        print("--- CONFIGURATION ERROR: Check .env file ---")
+        sys.exit(1)
+
+    if len(sys.argv) > 2:
+        START_DATE_STR = sys.argv[1]
+        END_DATE_STR = sys.argv[2]
+        print(f"--- Dynamic Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
     else:
-        # --- DYNAMIC DATE LOGIC ---
-        # This allows the Master Script to pass in dates via command line
-        if len(sys.argv) > 2:
-            START_DATE_STR = sys.argv[1]
-            END_DATE_STR = sys.argv[2]
-            print(f"--- Dynamic Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
-        else:
-            # Manual Defaults if running script directly
-            START_DATE_STR = "2025-11-21"
-            END_DATE_STR = "2025-11-21"
-            print(f"--- Manual Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
+        START_DATE_STR = "2025-11-21"
+        END_DATE_STR = "2025-11-21"
+        print(f"--- Manual Mode: Processing {START_DATE_STR} to {END_DATE_STR} ---")
 
-        CHUNK_SIZE_DAYS = 1
+    # Convert strings
+    start_date = date.fromisoformat(START_DATE_STR)
+    end_date = date.fromisoformat(END_DATE_STR)
+    
+    conn = None
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
         
-        start_date = date.fromisoformat(START_DATE_STR)
-        end_date = date.fromisoformat(END_DATE_STR)
-        
-        total_records_fetched = 0
-        total_rows_added = 0
-        
-        conn = None
-        try:
-            print(f"Connecting to MySQL database: {DB_CONFIG['database']} at {DB_CONFIG['host']}...")
-            conn = pymysql.connect(**DB_CONFIG)
-            print(f"Successfully connected to MySQL database.")
+        # Loop by Day
+        current_date = start_date
+        while current_date <= end_date:
+            dt_start = datetime.combine(current_date, datetime.min.time())
+            dt_end = datetime.combine(current_date, datetime.max.time())
             
-            # Loop in chunks to reduce API calls
-            chunk_start_date = start_date
-            while chunk_start_date <= end_date:
-                chunk_end_date = chunk_start_date + timedelta(days=CHUNK_SIZE_DAYS - 1)
-                
-                if chunk_end_date > end_date:
-                    chunk_end_date = end_date
-                
-                api_data = fetch_pjm_data(chunk_start_date, chunk_end_date, PJM_API_KEY)
-                
-                if api_data:
-                    rows_added = save_data_to_mysql(conn, api_data)
-                    total_records_fetched += len(api_data)
-                    total_rows_added += rows_added
-                    print(f"-> Fetched: {len(api_data):>5} records. Inserted: {rows_added:>5} new records.")
-                else:
-                    print(f"-> No data returned from API for this chunk.")
-                
-                # Move to the next chunk
-                chunk_start_date += timedelta(days=CHUNK_SIZE_DAYS)
-                
-                # Courtesy delay to respect API rate limits
-                if chunk_start_date <= end_date:
-                    print("Waiting for 9 seconds before next API call...")
-                    time.sleep(9)
-                
-        except pymysql.Error as e:
-            print(f"--- MySQL Database Error ---: {e}")
-        finally:
-            if conn:
-                conn.close()
-                print("\nMySQL connection closed.")
-
-        print("\n--- Final Summary ---")
-        print(f"Date Range Processed: {START_DATE_STR} to {END_DATE_STR}")
-        print(f"Total records fetched from API: {total_records_fetched}")
-        print(f"Total new records inserted into database: {total_rows_added}")
+            items = fetch_pjm_data(dt_start, dt_end, PJM_API_KEY)
+            
+            if items:
+                rows = save_data_to_mysql(conn, items)
+                print(f"   -> {current_date}: {len(items)} items, {rows} new.")
+            else:
+                print(f"   -> {current_date}: No constraints found.")
+            
+            current_date += timedelta(days=1)
+            time.sleep(2) # Rate limit safety
+            
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+    finally:
+        if conn: conn.close()

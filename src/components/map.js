@@ -122,7 +122,7 @@ export function initApp() {
                             
                             map.flyTo({ 
                                 center: offsetCenter, 
-                                zoom: 4.8,
+                                zoom: 5,
                                 pitch: 20, 
                                 bearing: map.getBearing()
                             });

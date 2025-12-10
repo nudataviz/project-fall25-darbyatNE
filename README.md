@@ -6,12 +6,17 @@
 </div>
 
 ## Quick Start Guide
-*Prerequisites: Node.js , npm, Conda and Git installed.*
+*Prerequisites: Node.js, npm, Conda and Git installed.*
 
 **Clone, Install and Run the App:**
    ```bash
+   # Clone the repo
    git clone https://github.com/nudataviz/project-fall25-darbyatNE
    cd project-fall25-darbyatNE
+   # Create and activate the Conda environment
+   conda env create -f environment.yml
+   conda activate lmp-env
+   # Run the app
    npm install
    npm run dev
    ```

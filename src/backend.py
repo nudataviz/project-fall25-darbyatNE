@@ -13,6 +13,13 @@ from typing import Optional, List
 load_dotenv()
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://nudataviz.github.io"
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

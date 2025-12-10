@@ -11,7 +11,7 @@ export function initApp() {
     // 1. Initialize Map
     const map = new maplibregl.Map({
         container: "map",
-        zoom: 5.5,
+        zoom: 5.4,
         center: [-82, 38.6],
         pitch: 12,
         hash: true,
@@ -109,7 +109,7 @@ export function initApp() {
                     if (zData.name === 'PJM') {
                         map.flyTo({ 
                             center: zData.center, 
-                            zoom: 5.5, pitch: 12, bearing: 0, essential: true
+                            zoom: 5.4, pitch: 12, bearing: 0, essential: true
                         });
                         controller.selectedZoneName = null;
                     } 
@@ -132,7 +132,7 @@ export function initApp() {
                             // Fly to normal center
                             map.flyTo({ 
                                 center: zData.center, 
-                                zoom: 6.1, pitch: 20, bearing: map.getBearing()
+                                zoom: 6, pitch: 20, bearing: map.getBearing()
                             });
                         }
                         
